@@ -8,12 +8,15 @@ export default tseslint.config(
 		'node_modules',
 		'dist',
 		'esbuild.config.mjs',
+		'rollup.config.mjs',
 		'version-bump.mjs',
 		'versions.json',
 		'main.js',
 		'package.json',
 		'package-lock.json',
 		'tsconfig.json',
+		'tsconfig.api.json',
+		'api',
 	]),
 	{
 		languageOptions: {
