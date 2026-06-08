@@ -10,6 +10,7 @@ export const MATHJAX_COMPONENT_VERSION = '1.0.0';
 let adaptor: LiteAdaptor | null = null;
 // eslint-disable-next-line obsidianmd/prefer-active-doc -- MathJax API exposes `document`.
 let html: ReturnType<typeof mathjax.document> | null = null;
+type MathJaxNode = Parameters<LiteAdaptor['innerHTML']>[0];
 
 export function initializeMathJaxToSVG(): void {
 if (adaptor && html) {
@@ -26,16 +27,19 @@ OutputJax: output,
 });
 }
 
-export async function tex2SVG(equation: string): Promise<string> {
+export function tex2SVG(equation: string): Promise<string> {
 if (!html || !adaptor) {
 initializeMathJaxToSVG();
 }
 
-const converted = html!.convert(equation, {
+if (!html || !adaptor) {
+throw new Error('MathJax failed to initialize.');
+}
+
+const node = html.convert(equation, {
 display: true,
-}) as unknown;
-const node = converted as Parameters<LiteAdaptor['innerHTML']>[0];
-return adaptor!.innerHTML(node);
+}) as MathJaxNode;
+return Promise.resolve(adaptor.innerHTML(node));
 }
 
 export function getMathJaxVersion(): string {

@@ -5,7 +5,7 @@ mermaid: string;
 pdf: string;
 };
 mathjax: {
-tex2SVG: (equation: string) => Promise<SVGElement | string>;
+tex2SVG: (equation: string) => Promise<string>;
 };
 mermaid: {
 parseMermaid: (code: string) => Promise<unknown>;

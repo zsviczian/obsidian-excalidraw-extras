@@ -23,16 +23,23 @@ ExcalidrawExtrasSettings,
 
 export default class ExcalidrawExtrasPlugin extends Plugin {
 public settings: ExcalidrawExtrasSettings = DEFAULT_SETTINGS;
-public api!: ExcalidrawExtrasAPI;
+public api: ExcalidrawExtrasAPI = this.createAPI();
 
 async onload(): Promise<void> {
 await this.loadSettings();
 
-initializeMathJaxToSVG();
-initializeMermaidToExcalidraw();
-initializePDFExport();
+if (this.settings.enableMathJaxToSVG) {
+	initializeMathJaxToSVG();
+}
 
-this.api = this.createAPI();
+if (this.settings.enableMermaidToExcalidraw) {
+	initializeMermaidToExcalidraw();
+}
+
+if (this.settings.enablePDFExport) {
+	initializePDFExport();
+}
+
 this.addSettingTab(new ExcalidrawExtrasSettingTab(this.app, this));
 }
 
@@ -46,7 +53,21 @@ if (!mainPluginData || typeof mainPluginData !== 'object') {
 return;
 }
 
-// Settings migration from obsidian-excalidraw-plugin will be implemented incrementally.
+const candidate = mainPluginData as Partial<ExcalidrawExtrasSettings>;
+if (typeof candidate.enableMathJaxToSVG === 'boolean') {
+this.settings.enableMathJaxToSVG = candidate.enableMathJaxToSVG;
+}
+
+if (typeof candidate.enableMermaidToExcalidraw === 'boolean') {
+this.settings.enableMermaidToExcalidraw =
+	candidate.enableMermaidToExcalidraw;
+}
+
+if (typeof candidate.enablePDFExport === 'boolean') {
+this.settings.enablePDFExport = candidate.enablePDFExport;
+}
+
+await this.saveSettings();
 }
 
 public async loadSettings(): Promise<void> {
