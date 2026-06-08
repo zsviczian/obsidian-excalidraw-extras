@@ -8,24 +8,24 @@ import process from 'node:process';
 const production = process.argv.includes('--configProduction');
 
 export default {
-input: 'src/main.ts',
-output: {
-file: 'main.js',
-format: 'cjs',
-sourcemap: production ? false : 'inline',
-},
-external: ['obsidian', 'electron', ...builtinModules],
-plugins: [
-nodeResolve({ browser: true }),
-commonjs(),
-typescript({
-	tsconfig: './tsconfig.json',
-	compilerOptions: {
-		inlineSourceMap: false,
-		inlineSources: false,
-		sourceMap: !production,
+	input: 'src/main.ts',
+	output: {
+		file: 'main.js',
+		format: 'cjs',
+		sourcemap: production ? false : 'inline',
 	},
-}),
-production ? terser() : undefined,
-],
+	external: ['obsidian', 'electron', ...builtinModules],
+	plugins: [
+		nodeResolve({ browser: true }),
+		commonjs(),
+		typescript({
+			tsconfig: './tsconfig.json',
+			compilerOptions: {
+				inlineSourceMap: false,
+				inlineSources: false,
+				sourceMap: !production,
+			},
+		}),
+		production ? terser() : undefined,
+	],
 };
