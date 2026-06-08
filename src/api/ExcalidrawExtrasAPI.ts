@@ -1,4 +1,4 @@
-import type { DataURL, FileId } from "../MathjaxToSVG";
+import type { DataURL, FileId } from '../MathjaxToSVG';
 
 export interface ExcalidrawExtrasAPI {
   versions: {
@@ -7,7 +7,11 @@ export interface ExcalidrawExtrasAPI {
     pdf: string;
   };
   mathjax: {
-    tex2dataURL(tex: string, scale?: number, preamble?: string | null): Promise<{
+    tex2dataURL(
+      tex: string,
+      scale?: number,
+      preamble?: string | null,
+    ): Promise<{
       mimeType: string;
       fileId: FileId;
       dataURL: DataURL;
@@ -17,9 +21,9 @@ export interface ExcalidrawExtrasAPI {
     clearMathJaxVariables(): void;
   };
   mermaid: {
-    parseMermaid?: any; // Stubs for future implementation
+    parseMermaid?: unknown; // Stubs for future implementation
   };
   pdf: {
-    exportToPDF?: any;  // Stubs for future implementation
-  }
+    exportToPDF?: unknown; // Stubs for future implementation
+  };
 }

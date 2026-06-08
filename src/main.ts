@@ -89,7 +89,7 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
       },
       mathjax: {
         tex2dataURL,
-        clearMathJaxVariables
+        clearMathJaxVariables,
       },
       mermaid: {
         parseMermaid,

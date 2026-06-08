@@ -1,0 +1,74 @@
+name: Build, Release, and Attest Assets
+
+on:
+  push:
+    tags:
+      - '*.*.*'   # Triggers if you tag exactly like: 1.0.0
+      - 'v*.*.*'  # Triggers if you tag like: v1.0.0 or v1.0.0-beta
+
+jobs:
+  release:
+    name: Create Release and Attest Assets
+    runs-on: ubuntu-latest
+
+    # CRITICAL: Give GitHub the required permissions to sign your files
+    permissions:
+      id-token: write
+      contents: write
+      attestations: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Builds main.js and copies manifest.json/styles.css to the dist/ folder
+      - name: Install dependencies and build
+        run: |
+          npm ci
+          npm run build 
+
+      - name: Determine if Pre-release
+        id: check-prerelease
+        run: |
+          if [[ "${{ github.ref_name }}" == *"-"* ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+      # Overwrite the dist/manifest.json with manifest-beta.json if it's a pre-release
+      - name: Prepare Beta Manifest
+        if: steps.check-prerelease.outputs.is_prerelease == 'true'
+        run: |
+          if [ -f "manifest-beta.json" ]; then
+            echo "Pre-release detected! Swapping dist/manifest.json with manifest-beta.json..."
+            cp manifest-beta.json dist/manifest.json
+          fi
+
+      # Attest the files specifically in the dist/ folder
+      - name: Attest Build Provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            dist/main.js
+            dist/manifest.json
+            dist/styles.css
+
+      # Attach the files from the dist/ folder to the GitHub Release
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+          files: |
+            dist/main.js
+            dist/manifest.json
+            dist/styles.css
+          prerelease: ${{ steps.check-prerelease.outputs.is_prerelease == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
