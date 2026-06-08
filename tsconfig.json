@@ -13,7 +13,16 @@
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
 		"allowSyntheticDefaultImports": true,
-		"lib": ["ES2021", "DOM"]
+		"lib": [
+			"ES2021",
+			"DOM"
+		],
+		"types": [
+			"obsidian",
+			"node"
+		],
 	},
-	"include": ["src/**/*.ts"]
+	"include": [
+		"src/**/*.ts"
+	]
 }

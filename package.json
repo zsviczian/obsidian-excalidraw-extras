@@ -1,6 +1,6 @@
 {
   "name": "@zsviczian/excalidraw-extras-api",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "API interfaces for Obsidian Excalidraw Extras",
   "main": "api/index.js",
   "types": "api/api/index.d.ts",
@@ -34,7 +34,7 @@
     "@rollup/plugin-node-resolve": "^16.0.1",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^12.1.4",
-    "@types/node": "^22.15.17",
+    "@types/node": "^22.19.20",
     "eslint": "^9.39.4",
     "eslint-plugin-obsidianmd": "^0.3.0",
     "globals": "^17.6.0",

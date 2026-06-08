@@ -1,0 +1,95 @@
+// Electron IPC interfaces
+export interface PrintToPDFOptions {
+  includeName: boolean;
+  pageSize: string | { width: number; height: number };
+  landscape: boolean;
+  margins: { top: number; left: number; right: number; bottom: number };
+  scaleFactor: number;
+  scale: number;
+  open: boolean;
+  filepath: string;
+  // Prefer CSS @page size over the numeric pageSize for mixed-size documents
+  preferCSSPageSize?: boolean;
+  // Exclude page ranges from output (Chromium/Electron supports either string "2-" or array)
+  pageRanges?: string | { from: number; to: number }[];
+}
+
+export interface PageDimensions {
+  width: number;
+  height: number;
+}
+
+export type PageOrientation = 'portrait' | 'landscape';
+
+// All dimensions in pixels (pt)
+export const STANDARD_PAGE_SIZES = {
+  A0: { width: 3179.52, height: 4494.96 }, // 33.11 × 46.81 inches
+  A1: { width: 2245.76, height: 3179.52 }, // 23.39 × 33.11 inches
+  A2: { width: 1587.76, height: 2245.76 }, // 16.54 × 23.39 inches
+  A3: { width: 1122.56, height: 1587.76 }, // 11.69 × 16.54 inches
+  A4: { width: 794.56, height: 1122.56 }, // 8.27 × 11.69 inches
+  A5: { width: 559.37, height: 794.56 }, // 5.83 × 8.27 inches
+  A6: { width: 397.28, height: 559.37 }, // 4.13 × 5.83 inches
+  Legal: { width: 816, height: 1344 }, // 8.5 × 14 inches
+  Letter: { width: 816, height: 1056 }, // 8.5 × 11 inches
+  Tabloid: { width: 1056, height: 1632 }, // 11 × 17 inches
+  Ledger: { width: 1056, height: 1632 }, // Tabloid and Ledger sizes are the same
+  'HD Screen': { width: 1920, height: 1080 }, // 16:9 aspect ratio
+  'MATCH IMAGE': { width: 0, height: 0 }, // 0 means use the current screen size
+} as const;
+
+export type PageSize = keyof typeof STANDARD_PAGE_SIZES;
+
+export interface SaveDialogOptions {
+  defaultPath: string;
+  filters: { name: string; extensions: string[] }[];
+  properties: string[];
+}
+
+export interface SaveDialogReturnValue {
+  canceled: boolean;
+  filePath?: string;
+}
+
+type CaptureRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type NativeImageLike = {
+  toPNG(): Uint8Array | Buffer;
+};
+
+interface ElectronWebContentsLike {
+  capturePage(rect: CaptureRect): Promise<NativeImageLike>;
+  getZoomFactor(): number;
+  setZoomFactor(factor: number): void;
+}
+
+interface ElectronWebUtilsLike {
+  getPathForFile(file: File): string;
+}
+
+export interface ElectronAPI {
+  ipcRenderer: {
+    send(channel: string, ...args: unknown[]): void;
+    once(channel: string, func: (...args: unknown[]) => void): void;
+  };
+  remote: {
+    dialog: {
+      showSaveDialog(
+        options: SaveDialogOptions,
+      ): Promise<SaveDialogReturnValue>;
+    };
+    getCurrentWebContents(): ElectronWebContentsLike;
+  };
+  webUtils: ElectronWebUtilsLike;
+}
+
+declare global {
+  interface Window {
+    electron: ElectronAPI;
+  }
+}

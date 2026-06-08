@@ -1,4 +1,4 @@
-export const MERMAID_COMPONENT_VERSION = '0.0.0';
+export const MERMAID_COMPONENT_VERSION = '1.0.0';
 
 export function initializeMermaidToExcalidraw(): void {
   // Placeholder for future Mermaid parser/bootstrap wiring.

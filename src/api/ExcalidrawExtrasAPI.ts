@@ -1,4 +1,5 @@
 import type { DataURL, FileId } from '../MathjaxToSVG';
+import { PageDimensions, PageSize } from '../PDFExport/pdfExportTypes';
 
 export type ExtrasComponent = 'mathjax' | 'mermaid' | 'pdf';
 
@@ -31,6 +32,16 @@ export interface ExcalidrawExtrasAPI {
     parseMermaid?: unknown; // Stubs for future implementation
   };
   pdf: {
-    exportToPDF?: unknown; // Stubs for future implementation
+    exportToPDF(
+      elementToPrint: HTMLElement,
+      pdfPath: string,
+      bgColor: string,
+      pageSize: PageSize | PageDimensions,
+      isLandscape: boolean,
+      margins: { top: number; left: number; right: number; bottom: number },
+      shouldOpen?: boolean,
+      extraCss?: string,
+      pageRanges?: string | { from: number; to: number }[],
+    ): Promise<void>;
   };
 }
