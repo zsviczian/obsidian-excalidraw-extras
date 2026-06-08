@@ -50,14 +50,11 @@ jobs:
             cp manifest-beta.json dist/manifest.json
           fi
 
-      # Attest the files specifically in the dist/ folder
+      # Attest all built files in the dist/ folder for security compliance
       - name: Attest Build Provenance
         uses: actions/attest-build-provenance@v2
         with:
-          subject-path: |
-            dist/main.js
-            dist/manifest.json
-            dist/styles.css
+          subject-path: 'dist/*'
 
       # Attach the files from the dist/ folder to the GitHub Release
       - name: Create GitHub Release
