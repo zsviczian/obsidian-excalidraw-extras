@@ -22,11 +22,15 @@ const fileid = customAlphabet('1234567890abcdef', 40);
 let adaptor: LiteAdaptor | null = null;
 let html: ReturnType<typeof mathjax.document> | null = null;
 
+// Dynamically extract the specific element type that LiteAdaptor uses
+type MathJaxNode = Parameters<LiteAdaptor['innerHTML']>[0];
+
 function svgToBase64(svg: string): string {
   const cleanSvg = svg.replaceAll('&nbsp;', ' ');
   const encodedData = encodeURIComponent(cleanSvg).replace(
     /%([0-9A-F]{2})/g,
-    (match, p1) => String.fromCharCode(parseInt(p1, 16)),
+    // Fix: Explicitly type the regex match and capture group as strings
+    (_match: string, p1: string) => String.fromCharCode(parseInt(p1, 16)),
   );
   return `data:image/svg+xml;base64,${btoa(encodedData)}`;
 }
@@ -82,15 +86,18 @@ export async function tex2dataURL(
     html = mathjax.document('', { InputJax: input, OutputJax: output });
   }
 
-  if (!html) {
+  if (!html || !adaptor) {
     return null;
   }
 
   try {
+    // Fix: Cast the 'any' output to 'unknown' first, then strictly to 'MathJaxNode'
     const node = html.convert(preamble ? `${preamble}\n${tex}` : tex, {
       display: true,
       scale,
-    });
+    }) as unknown as MathJaxNode;
+
+    // node is now safely typed as MathJaxNode, which innerHTML perfectly accepts
     const svg = new DOMParser().parseFromString(
       adaptor.innerHTML(node),
       'image/svg+xml',
