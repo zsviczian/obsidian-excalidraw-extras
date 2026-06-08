@@ -1,9 +1,9 @@
 import { Plugin } from 'obsidian';
-import type { ExcalidrawExtrasAPI } from './api';
+import type { ExcalidrawExtrasAPI } from './api/ExcalidrawExtrasAPI';
 import {
   getMathJaxVersion,
-  initializeMathJaxToSVG,
-  tex2SVG,
+  tex2dataURL,
+  clearMathJaxVariables,
 } from './MathjaxToSVG';
 import {
   getMermaidVersion,
@@ -19,14 +19,15 @@ import {
 
 export default class ExcalidrawExtrasPlugin extends Plugin {
   public settings: ExcalidrawExtrasSettings = DEFAULT_SETTINGS;
-  public api: ExcalidrawExtrasAPI = this.createAPI();
+  public api!: ExcalidrawExtrasAPI;
 
   async onload(): Promise<void> {
     await this.loadSettings();
 
-    if (this.settings.enableMathJaxToSVG) {
-      initializeMathJaxToSVG();
-    }
+    // API is instantiated here so the parent plugin can access it immediately
+    this.api = this.createAPI();
+
+    // Note: MathJax is lazily initialized inside tex2dataURL to keep load times near 0ms.
 
     if (this.settings.enableMermaidToExcalidraw) {
       initializeMermaidToExcalidraw();
@@ -40,7 +41,7 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
   }
 
   onunload(): void {
-    // Reserved for future teardown logic.
+    clearMathJaxVariables();
   }
 
   public async migrateSettingsFromMainPlugin(
@@ -87,7 +88,8 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
         pdf: getPDFVersion(),
       },
       mathjax: {
-        tex2SVG,
+        tex2dataURL,
+        clearMathJaxVariables
       },
       mermaid: {
         parseMermaid,

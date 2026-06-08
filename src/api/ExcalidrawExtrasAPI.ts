@@ -1,3 +1,5 @@
+import type { DataURL, FileId } from "../MathjaxToSVG";
+
 export interface ExcalidrawExtrasAPI {
   versions: {
     mathjax: string;
@@ -5,13 +7,19 @@ export interface ExcalidrawExtrasAPI {
     pdf: string;
   };
   mathjax: {
-    tex2SVG: (equation: string) => Promise<string>;
+    tex2dataURL(tex: string, scale?: number, preamble?: string | null): Promise<{
+      mimeType: string;
+      fileId: FileId;
+      dataURL: DataURL;
+      created: number;
+      size: { height: number; width: number };
+    } | null>;
+    clearMathJaxVariables(): void;
   };
   mermaid: {
-    parseMermaid: (code: string) => Promise<unknown>;
+    parseMermaid?: any; // Stubs for future implementation
   };
   pdf: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- API placeholder until PDF options are typed.
-    exportToPDF: (fileId: string, options: any) => Promise<void>;
-  };
+    exportToPDF?: any;  // Stubs for future implementation
+  }
 }

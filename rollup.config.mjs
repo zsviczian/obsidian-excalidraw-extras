@@ -3,6 +3,7 @@ import { nodeResolve } from '@rollup/plugin-node-resolve';
 import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import copy from 'rollup-plugin-copy';
+import json from '@rollup/plugin-json';
 import { builtinModules } from 'node:module';
 import process from 'node:process';
 
@@ -19,6 +20,7 @@ export default {
 	plugins: [
 		nodeResolve({ browser: true }),
 		commonjs(),
+		json(),
 		typescript({
 			tsconfig: './tsconfig.json',
 			compilerOptions: {

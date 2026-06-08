@@ -1,13 +1,15 @@
 {
-"extends": "./tsconfig.json",
-"compilerOptions": {
-"declaration": true,
-"emitDeclarationOnly": true,
-"declarationMap": false,
-"inlineSourceMap": false,
-"inlineSources": false,
-"outDir": "./api",
-"rootDir": "./src/api"
-},
-"include": ["src/api/**/*.ts"]
+  "compilerOptions": {
+    "target": "ES6",
+    "module": "CommonJS",
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "./dist-api",
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/api/**/*",
+    "src/MathjaxToSVG/index.ts"
+  ]
 }
