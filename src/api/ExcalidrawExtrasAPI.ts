@@ -1,10 +1,17 @@
 import type { DataURL, FileId } from '../MathjaxToSVG';
 
+export type ExtrasComponent = 'mathjax' | 'mermaid' | 'pdf';
+
 export interface ExcalidrawExtrasAPI {
   versions: {
     mathjax: string;
     mermaid: string;
     pdf: string;
+  };
+  features: {
+    isActive(component: ExtrasComponent): boolean;
+    enable(component: ExtrasComponent, temporary?: boolean): Promise<void>;
+    disable(component: ExtrasComponent): Promise<void>;
   };
   mathjax: {
     tex2dataURL(

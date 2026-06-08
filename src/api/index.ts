@@ -1,1 +1,1 @@
-export type { ExcalidrawExtrasAPI } from './ExcalidrawExtrasAPI';
+export * from './ExcalidrawExtrasAPI';
