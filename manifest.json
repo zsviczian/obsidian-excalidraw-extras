@@ -2,9 +2,9 @@
 "id": "obsidian-excalidraw-extras",
 "name": "Excalidraw Extras",
 "version": "1.0.0",
-"minAppVersion": "1.0.0",
+"minAppVersion": "1.5.7",
 "description": "Companion plugin for Excalidraw high-privilege and large components.",
-"author": "zsviczian",
+"author": "Zsolt Viczian",
 "authorUrl": "https://github.com/zsviczian",
 "isDesktopOnly": false
 }

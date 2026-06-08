@@ -1,92 +1,48 @@
-# Obsidian Sample Plugin
+# Excalidraw Extras for Obsidian
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+**Excalidraw Extras** is a companion plugin for the [Obsidian Excalidraw Plugin](https://github.com/zsviczian/obsidian-excalidraw-plugin). 
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+It is designed to house heavy dependencies and high-privilege operations, cleanly separating them from the core drawing experience. This architectural split ensures the main Excalidraw plugin remains lightweight, loads incredibly fast, works seamlessly with strict constraints like Obsidian Sync Basic, and complies with Obsidian's community security policies.
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
+⚠️ **Note:** This plugin does nothing on its own. It is an extension package that the main Excalidraw plugin hooks into. 
 
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and outputs a Notice on click.
-- Registers a global interval which logs 'setInterval' to the console.
+## Full Disclosure: What is in this plugin?
 
-## First time developing plugins?
+To comply with Obsidian's security guidelines and provide total transparency to users, here is a complete breakdown of what code has been carved out of the main plugin and moved into Excalidraw Extras:
 
-Quick starting guide for new plugin devs:
+### 📦 Large Packages
+These packages significantly increase bundle size and are separated here so users who don't need them don't have to load them:
+- **MathjaxToSVG**: The engine that parses LaTeX formulas into SVG elements.
+- **MermaidToExcalidraw**: The engine that converts Mermaid code blocks into visual Excalidraw elements.
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `src/main.ts` to `main.js`.
-- Make changes to `src/main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+### 🛡️ High-Privilege Operations
+Because Obsidian acts as a local Markdown editor, certain advanced features require access to your operating system. These have been moved here so you can explicitly opt-in:
+- **File System (`fs`) Access**: Advanced file operations beyond Obsidian's standard vault API.
+- **Network Access**: Outbound requests required for specific external integrations or advanced rendering features.
+- **IPC Calls (Inter-Process Communication)**: Advanced Electron/Node capabilities, primarily utilized for **PDF Printing** and export functions.
 
-## Releasing new releases
+*Note: Code evaluation functions (`eval`) and `btoa` encoding logic required for the delayed, high-performance loading of the core Excalidraw canvas remain in the core plugin and have **not** been moved here.*
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+## Installation & Usage
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+1. Install the main [Obsidian Excalidraw Plugin](https://github.com/zsviczian/obsidian-excalidraw-plugin).
+2. Install **Excalidraw Extras** from the Obsidian Community Plugins browser.
+3. Enable both plugins.
 
-## Adding your plugin to the community plugin list
+When the main Excalidraw plugin needs to render a LaTeX equation, parse a Mermaid diagram, or export a PDF, it will automatically detect this Extras package, verify its version, and execute the task. 
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+If this plugin is missing, the main plugin will simply prompt you to install it when you try to use one of the features listed above.
 
-## How to use
+## For Developers
 
-- Clone this repo.
-- Make sure your NodeJS is at least v18 (`node --version`).
-- `npm i` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+The main Excalidraw plugin interacts with this plugin via an exposed, strictly typed API. We publish these types to NPM so other plugins (or the parent plugin) can interact with the Extras package without bundling its heavy logic.
 
-## Manually installing the plugin
-
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
-
-## Improve code quality with eslint
-
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code.
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
-
-## Funding URL
-
-You can include funding URLs where people who use your plugin can financially support it.
-
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
-
-```json
-{
-	"fundingUrl": "https://buymeacoffee.com"
+```typescript
+// Example of how the parent plugin interfaces with Extras
+const extras = app.plugins.plugins['obsidian-excalidraw-extras'];
+if (extras && extras.api) {
+    const svg = await extras.api.mathjax.tex2SVG("E=mc^2");
 }
 ```
 
-If you have multiple URLs, you can also do:
-
-```json
-{
-	"fundingUrl": {
-		"Buy Me a Coffee": "https://buymeacoffee.com",
-		"GitHub Sponsor": "https://github.com/sponsors",
-		"Patreon": "https://www.patreon.com/"
-	}
-}
-```
-
-## API Documentation
-
-See https://docs.obsidian.md
+For more details on contributing or how the inter-plugin communication works, please see [CONTRIBUTING.md](./CONTRIBUTING.md) and [AGENTS.md](./AGENTS.md).
