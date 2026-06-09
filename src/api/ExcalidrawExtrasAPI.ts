@@ -29,7 +29,7 @@ export interface ExcalidrawExtrasAPI {
     clearMathJaxVariables(): void;
   };
   mermaid: {
-    parseMermaid?: unknown; // Stubs for future implementation
+    getModule(): Promise<typeof import("@excalidraw/mermaid-to-excalidraw")>;
   };
   pdf: {
     exportToPDF(

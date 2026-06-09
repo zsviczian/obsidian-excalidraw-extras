@@ -10,8 +10,7 @@ import {
 } from './MathjaxToSVG';
 import {
   getMermaidVersion,
-  initializeMermaidToExcalidraw,
-  parseMermaid,
+  getModule as getMermaidModule,
 } from './MermaidToExcalidraw';
 import { exportToPDF, getPDFVersion, initializePDFExport } from './PDFExport';
 import {
@@ -28,10 +27,6 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
   async onload(): Promise<void> {
     await this.loadSettings();
     this.api = this.createAPI();
-
-    if (this.settings.enableMermaidToExcalidraw) {
-      initializeMermaidToExcalidraw();
-    }
 
     if (this.settings.enablePDFExport) {
       initializePDFExport();
@@ -132,13 +127,20 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
       },
       mathjax: {
         tex2dataURL: async (...args) => {
-          // Strictly enforce settings at the function execution level
           if (!this.api.features.isActive('mathjax')) return null;
           return tex2dataURL(...args);
         },
         clearMathJaxVariables,
       },
-      mermaid: { parseMermaid },
+      mermaid: {
+        getModule: async () => {
+          // Strictly enforce Mermaid settings before performing the heavy dynamic import
+          if (!this.api.features.isActive('mermaid')) {
+            throw new Error('Mermaid feature is disabled. Please enable it in the Excalidraw Extras settings.');
+          }
+          return getMermaidModule();
+        },
+      },
       pdf: {
         exportToPDF: async (...args) => {
           if (!this.api.features.isActive('pdf')) {

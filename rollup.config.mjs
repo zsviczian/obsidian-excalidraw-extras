@@ -15,14 +15,20 @@ export default {
 		file: 'dist/main.js',
 		format: 'cjs',
 		sourcemap: production ? false : 'inline',
+		inlineDynamicImports: true, 
 	},
 	external: ['obsidian', 'electron', ...builtinModules],
 	plugins: [
-		nodeResolve({ browser: true }),
+		nodeResolve({
+			browser: true,
+			extensions: ['.ts', '.tsx', '.mjs', '.js', '.json', '.node']
+		}),
 		commonjs(),
 		json(),
 		typescript({
-			tsconfig: './tsconfig.json',
+			tsconfig: './tsconfig.rollup.json',
+			include: ["**/*.ts", "**/*.tsx"],
+			exclude: ["**/*.test.ts", "**/*.spec.ts", "**/test/**"], 
 			compilerOptions: {
 				inlineSourceMap: false,
 				inlineSources: false,

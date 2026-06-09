@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/**/*.ts",
+    "node_modules/@excalidraw/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules/**/test/**",
+    "node_modules/**/*.test.ts",
+    "node_modules/**/*.spec.ts"
+  ]
+}
