@@ -12,7 +12,7 @@ export interface ExcalidrawExtrasAPI {
   };
   features: {
     isActive(component: ExtrasComponent): boolean;
-    enable(component: ExtrasComponent, temporary?: boolean): Promise<void>;
+    enable(component: ExtrasComponent, durationMinutes?: number): Promise<void>;
     disable(component: ExtrasComponent): Promise<void>;
   };
   mathjax: {
