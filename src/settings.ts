@@ -63,8 +63,10 @@ export class ExcalidrawExtrasSettingTab extends PluginSettingTab {
           }),
       );
     new Setting(containerEl)
-      .setName('Enable Local File System Access')
-      .setDesc('Permits Excalidraw to access files outside the standard Obsidian Vault (Requires Desktop).')
+      .setName('Enable local file system access')
+      .setDesc(
+        'Permits Excalidraw to access files outside the standard Obsidian vault (requires desktop).',
+      )
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.enableFileSystem)

@@ -1,4 +1,4 @@
-import { Plugin } from 'obsidian';
+import { Plugin, App } from 'obsidian';
 import type {
   ExcalidrawExtrasAPI,
   ExtrasComponent,
@@ -96,6 +96,8 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
               return this.settings.enableMermaidToExcalidraw;
             case 'pdf':
               return this.settings.enablePDFExport;
+            case 'filesystem':
+              return this.settings.enableFileSystem;
             default:
               return false;
           }
@@ -149,9 +151,10 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
       },
       mermaid: {
         getModule: async () => {
-          // Strictly enforce Mermaid settings before performing the heavy dynamic import
           if (!this.api.features.isActive('mermaid')) {
-            throw new Error('Mermaid feature is disabled. Please enable it in the Excalidraw Extras settings.');
+            throw new Error(
+              'Mermaid feature is disabled. Please enable it in the Excalidraw Extras settings.',
+            );
           }
           return getMermaidModule();
         },
@@ -165,15 +168,19 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
         },
       },
       filesystem: {
-        readLocalFile: async (...args) => {
-          if (!this.api.features.isActive('filesystem')) throw new Error('Local File System Access is disabled');
-          return readLocalFile(...args);
+        readLocalFile: async (filePath: string, app: App) => {
+          if (!this.api.features.isActive('filesystem')) {
+            throw new Error('Local File System Access is disabled');
+          }
+          return readLocalFile(filePath, app);
         },
-        readLocalFileBinary: async (...args) => {
-          if (!this.api.features.isActive('filesystem')) throw new Error('Local File System Access is disabled');
-          return readLocalFileBinary(...args);
+        readLocalFileBinary: async (filePath: string, app: App) => {
+          if (!this.api.features.isActive('filesystem')) {
+            throw new Error('Local File System Access is disabled');
+          }
+          return readLocalFileBinary(filePath, app);
         },
-      }
+      },
     };
   }
 }

@@ -30,7 +30,7 @@ export interface ExcalidrawExtrasAPI {
     clearMathJaxVariables(): void;
   };
   mermaid: {
-    getModule(): Promise<typeof import("@excalidraw/mermaid-to-excalidraw")>;
+    getModule(): Promise<typeof import('@excalidraw/mermaid-to-excalidraw')>;
   };
   pdf: {
     exportToPDF(
@@ -46,7 +46,10 @@ export interface ExcalidrawExtrasAPI {
     ): Promise<void>;
   };
   filesystem: {
-    readLocalFile(filePath: string, app: any): Promise<string | null>;
-    readLocalFileBinary(filePath: string, app: any): Promise<ArrayBuffer | null>;
+    readLocalFile(filePath: string, app: unknown): Promise<string | null>;
+    readLocalFileBinary(
+      filePath: string,
+      app: unknown,
+    ): Promise<ArrayBuffer | null>;
   };
 }

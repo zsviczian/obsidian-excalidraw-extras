@@ -59,7 +59,7 @@ type CaptureRect = {
 };
 
 type NativeImageLike = {
-  toPNG(): Uint8Array | Buffer;
+  toPNG(): Uint8Array | ArrayBuffer;
 };
 
 interface ElectronWebContentsLike {
