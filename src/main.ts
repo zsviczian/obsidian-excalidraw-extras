@@ -14,6 +14,11 @@ import {
 } from './MermaidToExcalidraw';
 import { exportToPDF, getPDFVersion, initializePDFExport } from './PDFExport';
 import {
+  getFileSystemVersion,
+  readLocalFile,
+  readLocalFileBinary,
+} from './FileSystem';
+import {
   DEFAULT_SETTINGS,
   ExcalidrawExtrasSettingTab,
   ExcalidrawExtrasSettings,
@@ -55,6 +60,9 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
     if (typeof candidate.enablePDFExport === 'boolean') {
       this.settings.enablePDFExport = candidate.enablePDFExport;
     }
+    if (typeof candidate.enableFileSystem === 'boolean') {
+      this.settings.enableFileSystem = candidate.enableFileSystem;
+    }
     await this.saveSettings();
   }
 
@@ -76,6 +84,7 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
         mathjax: getMathJaxVersion(),
         mermaid: getMermaidVersion(),
         pdf: getPDFVersion(),
+        filesystem: getFileSystemVersion(),
       },
       features: {
         isActive: (component: ExtrasComponent) => {
@@ -105,6 +114,9 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
               case 'pdf':
                 this.settings.enablePDFExport = true;
                 break;
+              case 'filesystem':
+                this.settings.enableFileSystem = true;
+                break;
             }
             await this.saveSettings();
           }
@@ -120,6 +132,9 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
               break;
             case 'pdf':
               this.settings.enablePDFExport = false;
+              break;
+            case 'filesystem':
+              this.settings.enableFileSystem = false;
               break;
           }
           await this.saveSettings();
@@ -149,6 +164,16 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
           return exportToPDF(...args);
         },
       },
+      filesystem: {
+        readLocalFile: async (...args) => {
+          if (!this.api.features.isActive('filesystem')) throw new Error('Local File System Access is disabled');
+          return readLocalFile(...args);
+        },
+        readLocalFileBinary: async (...args) => {
+          if (!this.api.features.isActive('filesystem')) throw new Error('Local File System Access is disabled');
+          return readLocalFileBinary(...args);
+        },
+      }
     };
   }
 }

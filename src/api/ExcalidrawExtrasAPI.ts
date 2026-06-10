@@ -1,13 +1,14 @@
 import type { DataURL, FileId } from '../MathjaxToSVG';
 import { PageDimensions, PageSize } from '../PDFExport/pdfExportTypes';
 
-export type ExtrasComponent = 'mathjax' | 'mermaid' | 'pdf';
+export type ExtrasComponent = 'mathjax' | 'mermaid' | 'pdf' | 'filesystem';
 
 export interface ExcalidrawExtrasAPI {
   versions: {
     mathjax: string;
     mermaid: string;
     pdf: string;
+    filesystem: string;
   };
   features: {
     isActive(component: ExtrasComponent): boolean;
@@ -43,5 +44,9 @@ export interface ExcalidrawExtrasAPI {
       extraCss?: string,
       pageRanges?: string | { from: number; to: number }[],
     ): Promise<void>;
+  };
+  filesystem: {
+    readLocalFile(filePath: string, app: any): Promise<string | null>;
+    readLocalFileBinary(filePath: string, app: any): Promise<ArrayBuffer | null>;
   };
 }

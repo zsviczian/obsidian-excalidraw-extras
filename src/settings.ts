@@ -5,12 +5,14 @@ export interface ExcalidrawExtrasSettings {
   enableMathJaxToSVG: boolean;
   enableMermaidToExcalidraw: boolean;
   enablePDFExport: boolean;
+  enableFileSystem: boolean;
 }
 
 export const DEFAULT_SETTINGS: ExcalidrawExtrasSettings = {
   enableMathJaxToSVG: true,
-  enableMermaidToExcalidraw: false,
-  enablePDFExport: false,
+  enableMermaidToExcalidraw: true,
+  enablePDFExport: true,
+  enableFileSystem: true,
 };
 
 export class ExcalidrawExtrasSettingTab extends PluginSettingTab {
@@ -31,9 +33,9 @@ export class ExcalidrawExtrasSettingTab extends PluginSettingTab {
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.enableMathJaxToSVG)
-          .onChange(async (value) => {
+          .onChange((value) => {
             this.plugin.settings.enableMathJaxToSVG = value;
-            await this.plugin.saveSettings();
+            void this.plugin.saveSettings();
           }),
       );
 
@@ -43,9 +45,9 @@ export class ExcalidrawExtrasSettingTab extends PluginSettingTab {
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.enableMermaidToExcalidraw)
-          .onChange(async (value) => {
+          .onChange((value) => {
             this.plugin.settings.enableMermaidToExcalidraw = value;
-            await this.plugin.saveSettings();
+            void this.plugin.saveSettings();
           }),
       );
 
@@ -55,9 +57,20 @@ export class ExcalidrawExtrasSettingTab extends PluginSettingTab {
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.enablePDFExport)
-          .onChange(async (value) => {
+          .onChange((value) => {
             this.plugin.settings.enablePDFExport = value;
-            await this.plugin.saveSettings();
+            void this.plugin.saveSettings();
+          }),
+      );
+    new Setting(containerEl)
+      .setName('Enable Local File System Access')
+      .setDesc('Permits Excalidraw to access files outside the standard Obsidian Vault (Requires Desktop).')
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.enableFileSystem)
+          .onChange((value) => {
+            this.plugin.settings.enableFileSystem = value;
+            void this.plugin.saveSettings();
           }),
       );
   }
