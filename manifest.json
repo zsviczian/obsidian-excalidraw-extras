@@ -1,7 +1,7 @@
 {
   "id": "excalidraw-extras",
   "name": "Excalidraw Extras",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "minAppVersion": "1.5.7",
   "description": "Companion plugin for Excalidraw high-privilege and large components.",
   "author": "Zsolt Viczian",
