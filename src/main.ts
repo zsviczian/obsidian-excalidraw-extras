@@ -1,4 +1,4 @@
-import { Plugin, App, Notice } from 'obsidian';
+import { Plugin, App, Notice, Platform } from 'obsidian';
 import type {
   ExcalidrawExtrasAPI,
   ExtrasComponent,
@@ -56,6 +56,11 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
    * or the Extras plugin itself, it throws a strict security error.
    */
   private verifyCaller() {
+    // Bypass stack trace check on iOS due to WebKit stack trace limitations
+    if (Platform.isIosApp) {
+      return;
+    }
+
     const stack = new Error().stack || '';
     // This checks for both local dev paths and Obsidian's compiled "plugin:" references
     const isFromMain = stack.includes('obsidian-excalidraw-plugin');
