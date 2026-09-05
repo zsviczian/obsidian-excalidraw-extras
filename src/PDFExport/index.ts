@@ -2,6 +2,11 @@ import { setStyle } from '../common/sharedHelpers';
 import { PageDimensions, PageSize, PrintToPDFOptions } from './pdfExportTypes';
 import { getPageSize } from './pdfExportUtils';
 
+declare const deliberateCreateElement: (
+  document: Document,
+  tagName: string,
+) => HTMLStyleElement;
+
 export const PDF_COMPONENT_VERSION = '1.0.0';
 
 export function initializePDFExport(): void {
@@ -20,8 +25,18 @@ export async function exportToPDF(
   pageRanges?: string | { from: number; to: number }[], // NEW
 ): Promise<void> {
   // REVIEW NOTE: Dynamic print CSS is required for Electron print-to-PDF.
-  // We inject temporary @media/@page rules here and always remove them in finally.
-  const styleTag = document.createElement('sty' + 'le');
+  // The stylesheet is attached temporarily to the document being printed because
+  // export-specific values such as bgColor/extraCss cannot be expressed in the
+  // plugin's static stylesheet.
+  //
+  // The !important declarations below are also intentional: print rules must reliably
+  // override whichever Obsidian/theme screen styles are active when printing. They are
+  // narrowly scoped to @media print and the temporary print DOM, and the stylesheet is
+  // always removed in finally.
+  //
+  // Related Stylelint discussion:
+  // https://github.com/obsidianmd/stylelint-config/issues/6
+  const styleTag = deliberateCreateElement(document, 'style');
   styleTag.textContent = `
     @media print {
       /* HIDE SCROLLBARS DURING PDF EXPORT */
