@@ -1,4 +1,4 @@
-import type { DataURL, FileId } from '../MathjaxToSVG';
+import type { DataURL, FileId, MathJaxRenderOptions } from '../MathjaxToSVG';
 import { PageDimensions, PageSize } from '../PDFExport/pdfExportTypes';
 
 export type ExtrasComponent = 'mathjax' | 'mermaid' | 'pdf' | 'filesystem';
@@ -20,6 +20,7 @@ export interface ExcalidrawExtrasAPI {
       tex: string,
       scale?: number,
       preamble?: string | null,
+      options?: MathJaxRenderOptions,
     ): Promise<{
       mimeType: string;
       fileId: FileId;

@@ -7,9 +7,10 @@ import {
 } from 'mathjax-full/js/adaptors/liteAdaptor.js';
 import { RegisterHTMLHandler } from 'mathjax-full/js/handlers/html.js';
 import { AllPackages } from 'mathjax-full/js/input/tex/AllPackages.js';
+import type TexError from 'mathjax-full/js/input/tex/TexError.js';
 import { customAlphabet } from 'nanoid';
 
-export const MATHJAX_COMPONENT_VERSION = '1.0.0';
+export const MATHJAX_COMPONENT_VERSION = '1.1.0';
 
 export function getMathJaxVersion(): string {
   return MATHJAX_COMPONENT_VERSION;
@@ -17,10 +18,15 @@ export function getMathJaxVersion(): string {
 
 export type DataURL = string & { _brand: 'DataURL' };
 export type FileId = string & { _brand: 'FileId' };
+export interface MathJaxRenderOptions {
+  /** Propagate MathJax conversion errors instead of logging them and returning null. */
+  throwOnError?: boolean;
+}
 const fileid = customAlphabet('1234567890abcdef', 40);
 
 let adaptor: LiteAdaptor | null = null;
-let html: ReturnType<typeof mathjax.document> | null = null;
+let normalHtml: ReturnType<typeof mathjax.document> | null = null;
+let strictHtml: ReturnType<typeof mathjax.document> | null = null;
 
 // Dynamically extract the specific element type that LiteAdaptor uses
 type MathJaxNode = Parameters<LiteAdaptor['innerHTML']>[0];
@@ -52,6 +58,7 @@ export async function tex2dataURL(
   tex: string,
   scale: number = 4,
   preamble: string | null = null,
+  options?: MathJaxRenderOptions,
 ): Promise<{
   mimeType: string;
   fileId: FileId;
@@ -59,22 +66,30 @@ export async function tex2dataURL(
   created: number;
   size: { height: number; width: number };
 } | null> {
-  let input: TeX<
-    Record<string, never>,
-    Record<string, never>,
-    Record<string, never>
-  >;
-  let output: SVG<
-    Record<string, never>,
-    Record<string, never>,
-    Record<string, never>
-  >;
-
   if (!adaptor) {
     adaptor = liteAdaptor();
     RegisterHTMLHandler(adaptor);
-    input = new TeX({
-      packages: AllPackages,
+  }
+
+  const throwOnError = options?.throwOnError === true;
+  let html = throwOnError ? strictHtml : normalHtml;
+
+  if (!html) {
+    const input = new TeX({
+      packages: throwOnError
+        ? AllPackages.filter(
+            (packageName) =>
+              packageName !== 'noerrors' && packageName !== 'noundefined',
+          )
+        : AllPackages,
+      ...(throwOnError
+        ? {
+            formatError: (_jax: unknown, error: TexError): never => {
+              // eslint-disable-next-line @typescript-eslint/only-throw-error -- MathJax's TexError is its native error value but does not extend JavaScript Error.
+              throw error;
+            },
+          }
+        : {}),
       ...(preamble
         ? {
             inlineMath: [['$', '$']],
@@ -82,8 +97,13 @@ export async function tex2dataURL(
           }
         : {}),
     });
-    output = new SVG({ fontCache: 'local' });
+    const output = new SVG({ fontCache: 'local' });
     html = mathjax.document('', { InputJax: input, OutputJax: output });
+    if (throwOnError) {
+      strictHtml = html;
+    } else {
+      normalHtml = html;
+    }
   }
 
   if (!html || !adaptor) {
@@ -129,13 +149,17 @@ export async function tex2dataURL(
         size: await getImageSize(img),
       };
     }
-  } catch (e) {
-    console.error('ExcalidrawExtras MathJax Error:', e);
+  } catch (error) {
+    if (throwOnError) {
+      throw error;
+    }
+    console.error('ExcalidrawExtras MathJax Error:', error);
   }
   return null;
 }
 
 export function clearMathJaxVariables(): void {
   adaptor = null;
-  html = null;
+  normalHtml = null;
+  strictHtml = null;
 }
