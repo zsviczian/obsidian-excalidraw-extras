@@ -2,11 +2,6 @@ import { setStyle } from '../common/sharedHelpers';
 import { PageDimensions, PageSize, PrintToPDFOptions } from './pdfExportTypes';
 import { getPageSize } from './pdfExportUtils';
 
-declare const deliberateCreateElement: (
-  document: Document,
-  tagName: string,
-) => HTMLStyleElement;
-
 export const PDF_COMPONENT_VERSION = '1.0.0';
 
 export function initializePDFExport(): void {
@@ -25,8 +20,8 @@ export async function exportToPDF(
   pageRanges?: string | { from: number; to: number }[], // NEW
 ): Promise<void> {
   // REVIEW NOTE: Dynamic print CSS is required for Electron print-to-PDF.
-  // The stylesheet is attached temporarily to the document being printed because
-  // export-specific values such as bgColor/extraCss cannot be expressed in the
+  // A constructed stylesheet is adopted temporarily by the document being printed
+  // because export-specific values such as bgColor/extraCss cannot be expressed in the
   // plugin's static stylesheet.
   //
   // The !important declarations below are also intentional: print rules must reliably
@@ -34,10 +29,11 @@ export async function exportToPDF(
   // narrowly scoped to @media print and the temporary print DOM, and the stylesheet is
   // always removed in finally.
   //
-  // Related Stylelint discussion:
+  // Related upstream discussions:
   // https://github.com/obsidianmd/stylelint-config/issues/6
-  const styleTag = deliberateCreateElement(document, 'style');
-  styleTag.textContent = `
+  // https://github.com/obsidianmd/eslint-plugin/issues/197
+  const printStyleSheet = new CSSStyleSheet();
+  printStyleSheet.replaceSync(`
     @media print {
       /* HIDE SCROLLBARS DURING PDF EXPORT */
       ::-webkit-scrollbar {
@@ -90,8 +86,11 @@ export async function exportToPDF(
       }
       ${extraCss}
     }
-  `;
-  document.head.appendChild(styleTag);
+  `);
+  document.adoptedStyleSheets = [
+    ...document.adoptedStyleSheets,
+    printStyleSheet,
+  ];
 
   const printDiv = document.body.createDiv('print');
   setStyle(printDiv, {
@@ -124,7 +123,9 @@ export async function exportToPDF(
     });
   } finally {
     printDiv.remove();
-    styleTag.remove();
+    document.adoptedStyleSheets = document.adoptedStyleSheets.filter(
+      (styleSheet) => styleSheet !== printStyleSheet,
+    );
   }
 }
 
