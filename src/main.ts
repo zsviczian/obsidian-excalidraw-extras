@@ -25,6 +25,7 @@ import {
   ExcalidrawExtrasSettingTab,
   ExcalidrawExtrasSettings,
 } from './settings';
+import { installLatexTooltipPositioning } from './LatexTooltipPositioning';
 
 export default class ExcalidrawExtrasPlugin extends Plugin {
   public settings: ExcalidrawExtrasSettings = DEFAULT_SETTINGS;
@@ -41,6 +42,8 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
   async onload(): Promise<void> {
     await this.loadSettings();
     this.api = this.createAPI();
+
+    this.register(installLatexTooltipPositioning(document));
 
     if (this.settings.enableMathJaxToSVG) {
       this.ensureMathJaxRenderer();
