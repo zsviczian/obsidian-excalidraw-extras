@@ -7,6 +7,8 @@ import {
   getMathJaxVersion,
   tex2dataURL,
   clearMathJaxVariables,
+  initializeMathJaxRenderer,
+  MathJaxInitializationError,
 } from './MathjaxToSVG';
 import {
   getMermaidVersion,
@@ -32,9 +34,17 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
   public temporaryTimeouts: Partial<Record<ExtrasComponent, number>> = {};
   public activeTimers: Partial<Record<ExtrasComponent, number>> = {};
 
+  private mathJaxReady = false;
+  private mathJaxInitializationFailed = false;
+  private mathJaxErrorNoticeShown = false;
+
   async onload(): Promise<void> {
     await this.loadSettings();
     this.api = this.createAPI();
+
+    if (this.settings.enableMathJaxToSVG) {
+      this.ensureMathJaxRenderer();
+    }
 
     if (this.settings.enablePDFExport) {
       initializePDFExport();
@@ -44,7 +54,7 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
   }
 
   onunload(): void {
-    clearMathJaxVariables();
+    this.clearMathJaxRenderer();
     Object.values(this.activeTimers).forEach((timer) =>
       window.clearTimeout(timer),
     );
@@ -108,6 +118,47 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
     await this.saveData(this.settings);
   }
 
+  private ensureMathJaxRenderer(forceRetry = false): boolean {
+    if (this.mathJaxReady) return true;
+    if (this.mathJaxInitializationFailed && !forceRetry) return false;
+
+    try {
+      initializeMathJaxRenderer();
+      this.mathJaxReady = true;
+      this.mathJaxInitializationFailed = false;
+      return true;
+    } catch (error) {
+      this.mathJaxReady = false;
+      this.mathJaxInitializationFailed = true;
+      this.reportMathJaxInitializationError(error);
+      return false;
+    }
+  }
+
+  private reportMathJaxInitializationError(error: unknown): void {
+    const message =
+      'Excalidraw Extras: MathJax-to-SVG could not be initialized. ' +
+      'Excalidraw Extras will keep running, but LaTeX rendering is unavailable. ' +
+      'Check the developer console for details.';
+
+    if (!this.mathJaxErrorNoticeShown) {
+      new Notice(message, 15000);
+      this.mathJaxErrorNoticeShown = true;
+    }
+
+    const originalError =
+      error instanceof MathJaxInitializationError
+        ? error.originalError
+        : error;
+    console.error(`[Excalidraw Extras] ${message}`, originalError);
+  }
+
+  private clearMathJaxRenderer(): void {
+    clearMathJaxVariables();
+    this.mathJaxReady = false;
+    this.mathJaxInitializationFailed = false;
+  }
+
   public clearTimer(component: ExtrasComponent) {
     delete this.temporaryTimeouts[component];
     if (this.activeTimers[component]) {
@@ -126,6 +177,9 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
       },
       features: {
         isActive: (component: ExtrasComponent) => {
+          if (component === 'mathjax' && this.mathJaxInitializationFailed) {
+            return false;
+          }
           if (this.temporaryTimeouts[component] !== undefined) return true;
           switch (component) {
             case 'mathjax':
@@ -145,6 +199,14 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
           durationMinutes: number = 0,
         ) => {
           this.verifyCaller();
+
+          if (
+            component === 'mathjax' &&
+            !this.ensureMathJaxRenderer(true)
+          ) {
+            return;
+          }
+
           this.clearTimer(component);
 
           if (durationMinutes === -1) {
@@ -203,9 +265,21 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
         tex2dataURL: async (...args) => {
           this.verifyCaller();
           if (!this.api.features.isActive('mathjax')) return null;
-          return tex2dataURL(...args);
+          if (!this.ensureMathJaxRenderer()) return null;
+
+          try {
+            return await tex2dataURL(...args);
+          } catch (error) {
+            if (error instanceof MathJaxInitializationError) {
+              this.mathJaxReady = false;
+              this.mathJaxInitializationFailed = true;
+              this.reportMathJaxInitializationError(error);
+              return null;
+            }
+            throw error;
+          }
         },
-        clearMathJaxVariables,
+        clearMathJaxVariables: () => this.clearMathJaxRenderer(),
       },
       mermaid: {
         getModule: async () => {

@@ -6,11 +6,11 @@ import {
   liteAdaptor,
 } from 'mathjax-full/js/adaptors/liteAdaptor.js';
 import { RegisterHTMLHandler } from 'mathjax-full/js/handlers/html.js';
-import { AllPackages } from 'mathjax-full/js/input/tex/AllPackages.js';
+import { ALL_PACKAGES } from './packages';
 import type TexError from 'mathjax-full/js/input/tex/TexError.js';
 import { customAlphabet } from 'nanoid';
 
-export const MATHJAX_COMPONENT_VERSION = '1.1.0';
+export const MATHJAX_COMPONENT_VERSION = '1.1.1';
 
 export function getMathJaxVersion(): string {
   return MATHJAX_COMPONENT_VERSION;
@@ -22,6 +22,18 @@ export interface MathJaxRenderOptions {
   /** Propagate MathJax conversion errors instead of logging them and returning null. */
   throwOnError?: boolean;
 }
+
+export class MathJaxInitializationError extends Error {
+  public readonly originalError: unknown;
+
+  constructor(error: unknown) {
+    const detail = error instanceof Error ? `: ${error.message}` : '';
+    super(`MathJax renderer initialization failed${detail}`);
+    this.name = 'MathJaxInitializationError';
+    this.originalError = error;
+  }
+}
+
 const fileid = customAlphabet('1234567890abcdef', 40);
 
 let adaptor: LiteAdaptor | null = null;
@@ -53,35 +65,31 @@ async function getImageSize(
   });
 }
 
-// NOTE: preamble is now passed as a string from the parent plugin
-export async function tex2dataURL(
-  tex: string,
-  scale: number = 4,
-  preamble: string | null = null,
-  options?: MathJaxRenderOptions,
-): Promise<{
-  mimeType: string;
-  fileId: FileId;
-  dataURL: DataURL;
-  created: number;
-  size: { height: number; width: number };
-} | null> {
-  if (!adaptor) {
+function ensureAdaptor(): LiteAdaptor {
+  if (adaptor) return adaptor;
+
+  try {
     adaptor = liteAdaptor();
     RegisterHTMLHandler(adaptor);
+    return adaptor;
+  } catch (error) {
+    adaptor = null;
+    throw new MathJaxInitializationError(error);
   }
+}
 
-  const throwOnError = options?.throwOnError === true;
-  let html = throwOnError ? strictHtml : normalHtml;
-
-  if (!html) {
+function createMathJaxDocument(
+  throwOnError: boolean,
+  preamble: string | null,
+): ReturnType<typeof mathjax.document> {
+  try {
     const input = new TeX({
       packages: throwOnError
-        ? AllPackages.filter(
+        ? ALL_PACKAGES.filter(
             (packageName) =>
               packageName !== 'noerrors' && packageName !== 'noundefined',
           )
-        : AllPackages,
+        : ALL_PACKAGES,
       ...(throwOnError
         ? {
             formatError: (_jax: unknown, error: TexError): never => {
@@ -98,16 +106,45 @@ export async function tex2dataURL(
         : {}),
     });
     const output = new SVG({ fontCache: 'local' });
-    html = mathjax.document('', { InputJax: input, OutputJax: output });
+    return mathjax.document('', { InputJax: input, OutputJax: output });
+  } catch (error) {
+    throw new MathJaxInitializationError(error);
+  }
+}
+
+/**
+ * Initializes the default renderer so plugin startup can detect and contain
+ * MathJax compatibility problems instead of failing the entire plugin load.
+ */
+export function initializeMathJaxRenderer(): void {
+  ensureAdaptor();
+  createMathJaxDocument(false, null);
+}
+
+// NOTE: preamble is now passed as a string from the parent plugin
+export async function tex2dataURL(
+  tex: string,
+  scale: number = 4,
+  preamble: string | null = null,
+  options?: MathJaxRenderOptions,
+): Promise<{
+  mimeType: string;
+  fileId: FileId;
+  dataURL: DataURL;
+  created: number;
+  size: { height: number; width: number };
+} | null> {
+  const currentAdaptor = ensureAdaptor();
+  const throwOnError = options?.throwOnError === true;
+  let html = throwOnError ? strictHtml : normalHtml;
+
+  if (!html) {
+    html = createMathJaxDocument(throwOnError, preamble);
     if (throwOnError) {
       strictHtml = html;
     } else {
       normalHtml = html;
     }
-  }
-
-  if (!html || !adaptor) {
-    return null;
   }
 
   try {
@@ -119,7 +156,7 @@ export async function tex2dataURL(
 
     // node is now safely typed as MathJaxNode, which innerHTML perfectly accepts
     const svg = new DOMParser().parseFromString(
-      adaptor.innerHTML(node),
+      currentAdaptor.innerHTML(node),
       'image/svg+xml',
     ).firstChild as SVGSVGElement;
 
