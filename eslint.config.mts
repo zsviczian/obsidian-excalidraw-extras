@@ -1,6 +1,7 @@
 import tseslint from 'typescript-eslint';
 import obsidianmd from 'eslint-plugin-obsidianmd';
 import globals from 'globals';
+import js from '@eslint/js';
 import { globalIgnores } from 'eslint/config';
 
 export default tseslint.config(
@@ -32,5 +33,14 @@ export default tseslint.config(
 			},
 		},
 	},
-	...obsidianmd.configs.recommended,
+	// The Obsidian rules require typed plugin source, not Node's test harness.
+	...obsidianmd.configs.recommended.map((config) => ({
+		...config,
+		ignores: [...(config.ignores ?? []), 'scripts/testing/**/*.mjs'],
+	})),
+	{
+		files: ['scripts/testing/**/*.mjs'],
+		languageOptions: { globals: globals.node },
+		rules: js.configs.recommended.rules,
+	},
 );

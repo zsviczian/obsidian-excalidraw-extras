@@ -13,6 +13,7 @@
     "access": "public"
   },
   "scripts": {
+    "test:latex-tooltip": "node --test scripts/testing/latexTooltipPositioning.test.mjs",
     "dev": "rollup -c -w",
     "build": "tsc -noEmit -skipLibCheck && rollup -c --configProduction",
     "build:api": "shx rm -rf ./api && tsc -p tsconfig.api.json && shx touch ./api/index.js",
