@@ -1,6 +1,37 @@
+import type { Plugin } from 'obsidian';
+
 const TOOLTIP_SELECTOR =
   '.excalidraw-LatexPrompt .cm-editor .cm-tooltip-cursor.cm-tooltip';
 const ARROW_SELECTOR = '.cm-tooltip-arrow';
+
+/** Own one positioning observer per workspace document, including restored popouts. */
+export function registerLatexTooltipPositioning(plugin: Plugin): void {
+  const workspace = plugin.app.workspace;
+  const disposers = new Map<Document, () => void>();
+  let disposed = false;
+  const install = (doc: Document): void => {
+    if (!disposed && !disposers.has(doc)) {
+      disposers.set(doc, installLatexTooltipPositioning(doc));
+    }
+  };
+  const uninstall = (doc: Document): void => {
+    disposers.get(doc)?.();
+    disposers.delete(doc);
+  };
+
+  install(workspace.containerEl.ownerDocument);
+  plugin.registerEvent(workspace.on('window-open', (win) => install(win.doc)));
+  plugin.registerEvent(workspace.on('window-close', (win) => uninstall(win.doc)));
+  plugin.register(() => {
+    disposed = true;
+    for (const dispose of disposers.values()) dispose();
+    disposers.clear();
+  });
+  workspace.onLayoutReady(() => {
+    if (disposed) return;
+    workspace.iterateAllLeaves((leaf) => install(leaf.getContainer().doc));
+  });
+}
 
 function setStyleIfChanged(
   element: HTMLElement,

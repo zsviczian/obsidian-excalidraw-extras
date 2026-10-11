@@ -35,6 +35,9 @@ If this plugin is missing, the main plugin will simply prompt you to install it 
 
 ## For Developers
 
+For LaTeX preview regression checks in main and popout windows, see
+[LaTeX testing](docs/LATEX_TESTING.md).
+
 The main Excalidraw plugin interacts with this plugin via an exposed, strictly typed API. We publish these types to NPM so other plugins (or the parent plugin) can interact with the Extras package without bundling its heavy logic.
 
 ```typescript
