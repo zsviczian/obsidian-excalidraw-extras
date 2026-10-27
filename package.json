@@ -13,6 +13,7 @@
     "access": "public"
   },
   "scripts": {
+    "test:mermaid": "node --experimental-strip-types --test scripts/testing/mermaid.test.mjs",
     "test:latex-tooltip": "node --test scripts/testing/latexTooltipPositioning.test.mjs",
     "dev": "rollup -c -w",
     "build": "tsc -noEmit -skipLibCheck && rollup -c --configProduction",
@@ -29,7 +30,7 @@
   "dependencies": {
     "mathjax-full": "^3.2.2",
     "nanoid": "^5.1.11",
-    "@excalidraw/mermaid-to-excalidraw": "2.2.2"
+    "@excalidraw/mermaid-to-excalidraw": "3.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
@@ -55,7 +56,6 @@
   "overrides": {
     "lodash": "^4.18.1",
     "lodash-es": "^4.18.1",
-    "mermaid": "11.12.1",
     "nanoid": "^5.1.11",
     "serialize-javascript": "^7.0.5",
     "@xmldom/xmldom": "^0.9.12"

@@ -1,4 +1,4 @@
-export const MERMAID_COMPONENT_VERSION = '2.2.2';
+export const MERMAID_COMPONENT_VERSION = '3.0.0';
 
 export function getMermaidVersion(): string {
   return MERMAID_COMPONENT_VERSION;

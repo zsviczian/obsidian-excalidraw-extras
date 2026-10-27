@@ -13,7 +13,7 @@ To comply with Obsidian's security guidelines and provide total transparency to 
 ### 📦 Large Packages
 These packages significantly increase bundle size and are separated here so users who don't need them don't have to load them:
 - **MathjaxToSVG**: The engine that parses LaTeX formulas into SVG elements.
-- **MermaidToExcalidraw**: The engine that converts Mermaid code blocks into visual Excalidraw elements.
+- **MermaidToExcalidraw**: The local Pele-based converter that turns Mermaid code blocks into visual Excalidraw elements. Mermaid component 3.0.0 is supplied by Extras and checked by the main plugin.
 
 ### 🛡️ High-Privilege Operations
 Because Obsidian acts as a local Markdown editor, certain advanced features require access to your operating system. These have been moved here so you can explicitly opt-in:
