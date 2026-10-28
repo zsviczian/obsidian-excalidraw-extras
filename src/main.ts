@@ -38,8 +38,10 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
   private mathJaxReady = false;
   private mathJaxInitializationFailed = false;
   private mathJaxErrorNoticeShown = false;
+  private unloaded = false;
 
   async onload(): Promise<void> {
+    this.unloaded = false;
     await this.loadSettings();
     this.api = this.createAPI();
 
@@ -57,18 +59,23 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
   }
 
   onunload(): void {
+    if (this.unloaded) return;
+    this.unloaded = true;
     this.clearMathJaxRenderer();
     Object.values(this.activeTimers).forEach((timer) =>
       window.clearTimeout(timer),
     );
+    this.activeTimers = {};
+    this.temporaryTimeouts = {};
   }
 
   /**
-   * SECURITY LAYER: Inspects the JavaScript call stack.
-   * If the call doesn't originate from the official Excalidraw plugin
-   * or the Extras plugin itself, it throws a strict security error.
+   * Best-effort caller diagnostic, not an authentication boundary: an Extras
+   * frame can itself satisfy this stack-name heuristic. Feature activation
+   * gates remain responsible for whether a service is available.
    */
   private verifyCaller() {
+    if (this.unloaded) throw new Error('Excalidraw Extras has been unloaded');
     // Bypass stack trace check on iOS due to WebKit stack trace limitations
     if (Platform.isIosApp) {
       return;
@@ -180,6 +187,7 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
       },
       features: {
         isActive: (component: ExtrasComponent) => {
+          if (this.unloaded) return false;
           if (component === 'mathjax' && this.mathJaxInitializationFailed) {
             return false;
           }
@@ -218,12 +226,11 @@ export default class ExcalidrawExtrasPlugin extends Plugin {
             this.temporaryTimeouts[component] =
               Date.now() + durationMinutes * 60000;
             this.activeTimers[component] = window.setTimeout(() => {
-              void (async () => {
-                await this.api.features.disable(component);
-                new Notice(
-                  `Excalidraw Extras: ${component} timer expired. Feature disabled.`,
-                );
-              })();
+              if (this.unloaded) return;
+              this.clearTimer(component);
+              new Notice(
+                `Excalidraw Extras: ${component} temporary activation expired.`,
+              );
             }, durationMinutes * 60000);
           } else {
             // Permanent

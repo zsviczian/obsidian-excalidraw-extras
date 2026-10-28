@@ -7,6 +7,7 @@ import { globalIgnores } from 'eslint/config';
 export default tseslint.config(
 	globalIgnores([
 		'node_modules',
+        '.test-work',
 		'dist',
 		'esbuild.config.mjs',
 		'rollup.config.mjs',

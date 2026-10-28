@@ -4,6 +4,9 @@ import { getPageSize } from './pdfExportUtils';
 
 export const PDF_COMPONENT_VERSION = '1.0.0';
 
+// Electron completion has no request ID, so one document can own only one print.
+const printingDocuments = new WeakSet<Document>();
+
 export function initializePDFExport(): void {
   // Placeholder for future high-privilege IPC and filesystem setup.
 }
@@ -19,21 +22,45 @@ export async function exportToPDF(
   extraCss: string = '',
   pageRanges?: string | { from: number; to: number }[], // NEW
 ): Promise<void> {
-  // REVIEW NOTE: Dynamic print CSS is required for Electron print-to-PDF.
-  // A constructed stylesheet is adopted temporarily by the document being printed
-  // because export-specific values such as bgColor/extraCss cannot be expressed in the
-  // plugin's static stylesheet.
-  //
-  // The !important declarations below are also intentional: print rules must reliably
-  // override whichever Obsidian/theme screen styles are active when printing. They are
-  // narrowly scoped to @media print and the temporary print DOM, and the stylesheet is
-  // always removed in finally.
-  //
-  // Related upstream discussions:
-  // https://github.com/obsidianmd/stylelint-config/issues/6
-  // https://github.com/obsidianmd/eslint-plugin/issues/197
-  const printStyleSheet = new CSSStyleSheet();
-  printStyleSheet.replaceSync(`
+  const document = elementToPrint.ownerDocument;
+  const ownerWindow = document.defaultView;
+  const ipc = ownerWindow?.electron?.ipcRenderer;
+  if (!ownerWindow || !ipc) {
+    throw new Error('PDF export requires the desktop Electron host');
+  }
+  if (printingDocuments.has(document)) {
+    throw new Error('PDF export is already in progress in this window');
+  }
+  printingDocuments.add(document);
+  try {
+    const options: PrintToPDFOptions = {
+      includeName: false,
+      pageSize: getPageSize(pageSize),
+      landscape: isLandscape,
+      margins,
+      scaleFactor: 100,
+      scale: 1,
+      open: shouldOpen,
+      filepath: pdfPath,
+      preferCSSPageSize: true,
+      ...(pageRanges ? { pageRanges } : {}),
+    };
+    const clonedContent = elementToPrint.cloneNode(true);
+    // REVIEW NOTE: Dynamic print CSS is required for Electron print-to-PDF.
+    // A constructed stylesheet is adopted temporarily by the document being printed
+    // because export-specific values such as bgColor/extraCss cannot be expressed in the
+    // plugin's static stylesheet.
+    //
+    // The !important declarations below are also intentional: print rules must reliably
+    // override whichever Obsidian/theme screen styles are active when printing. They are
+    // narrowly scoped to @media print and the temporary print DOM, and the stylesheet is
+    // always removed in finally.
+    //
+    // Related upstream discussions:
+    // https://github.com/obsidianmd/stylelint-config/issues/6
+    // https://github.com/obsidianmd/eslint-plugin/issues/197
+    const printStyleSheet = new ownerWindow.CSSStyleSheet();
+    printStyleSheet.replaceSync(`
     @media print {
       /* HIDE SCROLLBARS DURING PDF EXPORT */
       ::-webkit-scrollbar {
@@ -87,45 +114,55 @@ export async function exportToPDF(
       ${extraCss}
     }
   `);
-  document.adoptedStyleSheets = [
-    ...document.adoptedStyleSheets,
-    printStyleSheet,
-  ];
+    let printDiv: HTMLDivElement | undefined;
+    try {
+      document.adoptedStyleSheets = [
+        ...document.adoptedStyleSheets,
+        printStyleSheet,
+      ];
 
-  const printDiv = document.body.createDiv('print');
-  setStyle(printDiv, {
-    top: '0',
-    left: '0',
-    display: 'flex',
-  });
+      printDiv = document.body.createDiv('print');
+      setStyle(printDiv, {
+        top: '0',
+        left: '0',
+        display: 'flex',
+      });
 
-  //printDiv.appendChild(elementToPrint); // if I append directly, rounded images and clip paths get messed up
-  // see https://github.com/zsviczian/obsidian-excalidraw-plugin/issues/2544
-  printDiv.appendChild(elementToPrint.cloneNode(true));
+      //printDiv.appendChild(elementToPrint); // if I append directly, rounded images and clip paths get messed up
+      // see https://github.com/zsviczian/obsidian-excalidraw-plugin/issues/2544
+      printDiv.appendChild(clonedContent);
 
-  const options: PrintToPDFOptions = {
-    includeName: false,
-    pageSize: getPageSize(pageSize),
-    landscape: isLandscape,
-    margins,
-    scaleFactor: 100,
-    scale: 1,
-    open: shouldOpen,
-    filepath: pdfPath,
-    preferCSSPageSize: true,
-    ...(pageRanges ? { pageRanges } : {}), // NEW
-  };
-
-  try {
-    await new Promise<void>((resolve) => {
-      window.electron.ipcRenderer.once('print-to-pdf', () => resolve());
-      window.electron.ipcRenderer.send('print-to-pdf', options);
-    });
+      await new Promise<void>((resolve, reject) => {
+        const cleanup = () => {
+          ownerWindow.clearTimeout(timeout);
+          ipc.removeListener('print-to-pdf', onComplete);
+        };
+        const onComplete = () => {
+          cleanup();
+          resolve();
+        };
+        const timeout = ownerWindow.setTimeout(() => {
+          cleanup();
+          reject(
+            new Error('PDF export timed out waiting for Electron completion'),
+          );
+        }, 120000);
+        try {
+          ipc.once('print-to-pdf', onComplete);
+          ipc.send('print-to-pdf', options);
+        } catch (error) {
+          cleanup();
+          reject(error instanceof Error ? error : new Error(String(error)));
+        }
+      });
+    } finally {
+      printDiv?.remove();
+      document.adoptedStyleSheets = document.adoptedStyleSheets.filter(
+        (styleSheet) => styleSheet !== printStyleSheet,
+      );
+    }
   } finally {
-    printDiv.remove();
-    document.adoptedStyleSheets = document.adoptedStyleSheets.filter(
-      (styleSheet) => styleSheet !== printStyleSheet,
-    );
+    printingDocuments.delete(document);
   }
 }
 
