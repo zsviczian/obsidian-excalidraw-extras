@@ -10,7 +10,11 @@ The plugin repository owns serial native integration in an explicitly authorized
 
 ## Checkpoint, 2026-10-28
 
-Windows, Node 22.22.3: 30 Node tests and whole-module coverage ratchets pass. Four actual-bundle Chromium cases and a clean packed API consumer pass. Native gateway/PDF verification is tracked in plugin PR #3022. Additional source regressions demonstrate: temporary expiry must preserve a permanent preference; unloaded API references cannot reactivate services; page dimensions must be finite and positive; every PDF failure clears print DOM/styles/listeners/timers; one owning document cannot overlap two uncorrelated Electron print requests, while independent documents remain independent.
+The initial Windows checkpoint had 30 source cases, four built-browser cases and passing package/coverage gates. The maintainer subsequently requested a targeted rollback of the PDF timeout and per-document concurrency rejection. Both are removed; PDF export waits for the real Electron completion response. No replacement deadline, queue, lock or cancellation is introduced in the product.
+
+The updated deterministic PDF regression advances its controlled clock beyond two minutes and again by fifteen minutes. The export must remain pending with the same print root, stylesheet and completion listener until acknowledgement; normal completion then releases those resources. Dimension validation, owner-document/window handling, IPC/DOM failure cleanup and activation/unload fixes remain covered and unchanged. Concurrency is not a native acceptance experiment.
+
+The plugin coordinator keeps bounded test deadlines. A failed tooling deadline cannot cancel Electron printing: unsettled work and its exact resources/controller must remain available for guarded recovery. The maintained tooling negative control verifies that distinction. Native verification runs one real plugin-gateway export and retains the PDF and rendered page beside its report. Current native completion/output evidence belongs to the expanded plugin run, not this historical checkpoint.
 
 These fixes have failed-before/passed-after evidence; no package version, runtime dependency or public API signature changes. Initial browser decode/export-shape assumptions, an unavailable offline npm cache and source-coverage reporting failures remain in ignored diagnostic logs rather than being represented as successful first attempts. Full cross-repository acceptance remains owned by the draft coordination PR.
 

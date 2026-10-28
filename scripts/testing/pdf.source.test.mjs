@@ -6,15 +6,16 @@ import { sourceHarness } from './sourceHarness.mjs';
 const graph = sourceHarness(); after(() => graph.close());
 const { exportToPDF } = await graph.importModule('src/PDFExport/index.ts');
 function documentFixture({ acknowledge = true, sendError = false } = {}) {
-  const roots = [], timers = new Map(), requests = [], existingStyle = {}, ipcRenderer = new EventEmitter(); let timerId = 0;
+  const roots = [], timers = new Map(), requests = [], existingStyle = {}, ipcRenderer = new EventEmitter(); let timerId = 0, elapsed = 0;
   class Sheet { replaceSync(text) { this.text = text; } }
-  const win = { CSSStyleSheet: Sheet, electron: { ipcRenderer }, setTimeout(fn) { timers.set(++timerId, fn); return timerId; }, clearTimeout(id) { timers.delete(id); } };
+  const win = { CSSStyleSheet: Sheet, electron: { ipcRenderer }, setTimeout(fn, delay) { timers.set(++timerId, { fn, due: elapsed + delay }); return timerId; }, clearTimeout(id) { timers.delete(id); } };
   const doc = { defaultView: win, adoptedStyleSheets: [existingStyle], body: { createDiv() {
     const root = { style: {}, children: [], appendChild(value) { this.children.push(value); }, remove() { roots.splice(roots.indexOf(this), 1); } }; roots.push(root); return root;
   } } };
   ipcRenderer.send = (channel, options) => { requests.push(options); if (sendError) throw Error('owned IPC failure'); if (acknowledge) queueMicrotask(() => ipcRenderer.emit(channel, {})); };
   const element = { ownerDocument: doc, cloneNode: () => ({ cloned: true }) };
-  return { doc, win, roots, timers, requests, ipcRenderer, element, existingStyle };
+  const advance = milliseconds => { elapsed += milliseconds; for (const [id, timer] of timers) if (timer.due <= elapsed) { timers.delete(id); timer.fn(); } };
+  return { doc, win, roots, timers, requests, ipcRenderer, element, existingStyle, advance };
 }
 function globals(t, fixture) {
   const before = Object.fromEntries(['document', 'window', 'CSSStyleSheet'].map(k => [k, globalThis[k]]));
@@ -36,10 +37,22 @@ test('IPC send failure removes the completion listener as well as DOM and styles
   const f = documentFixture({ sendError: true }); globals(t, f);
   await assert.rejects(print(f.element), /IPC failure/); assertClean(f);
 });
-test('missing completion has a bounded deadline and late acknowledgement has no remaining listener', async t => {
+test('PDF remains pending beyond two minutes with resources intact until real completion', async t => {
   const f = documentFixture({ acknowledge: false }); globals(t, f);
-  const pending = print(f.element); assert.equal(f.timers.size, 1, 'print completion must have a deadline');
-  const rejected = assert.rejects(pending, /timed out/); [...f.timers.values()][0](); await rejected; assertClean(f);
+  let settled = false;
+  const pending = print(f.element);
+  pending.then(() => { settled = true; }, () => { settled = true; });
+  const root = f.roots[0], sheet = f.doc.adoptedStyleSheets[1];
+  assert.ok(root && sheet);
+  for (const elapsed of [120001, 15 * 60000]) {
+    f.advance(elapsed); await Promise.resolve(); await Promise.resolve();
+    assert.equal(settled, false, 'elapsed time must not settle native printing');
+    assert.equal(f.roots[0], root, 'unsettled printing retains its content');
+    assert.equal(f.doc.adoptedStyleSheets[1], sheet, 'unsettled printing retains its stylesheet');
+    assert.equal(f.ipcRenderer.listenerCount('print-to-pdf'), 1);
+  }
+  f.ipcRenderer.emit('print-to-pdf', {}); await pending;
+  assert.equal(settled, true); assertClean(f);
   f.ipcRenderer.emit('print-to-pdf', {}); assertClean(f);
 });
 test('a popout print uses the content document and its Electron endpoint', async t => {
@@ -51,20 +64,10 @@ test('missing Electron fails before allocating any print resources', async t => 
   await assert.rejects(print(f.element), /Electron|desktop/); assertClean(f);
 });
 
-test('IPC listener registration failure clears its deadline and print resources', async t => {
+test('IPC listener registration failure clears print resources', async t => {
   const f = documentFixture(); globals(t, f);
   f.ipcRenderer.once = () => { throw Error('owned listener registration failure'); };
   await assert.rejects(print(f.element), /registration failure/); assertClean(f);
-});
-test('overlapping exports in one document reject without consuming the first completion', async t => {
-  const f = documentFixture({ acknowledge: false }); globals(t, f);
-  const first = print(f.element);
-  const second = print(f.element);
-  const observed = await Promise.race([second.then(() => 'resolved', error => String(error)), new Promise(resolve => setImmediate(() => resolve('pending')))]);
-  assert.match(observed, /already in progress/);
-  assert.equal(f.requests.length, 1); assert.equal(f.roots.length, 1);
-  f.ipcRenderer.emit('print-to-pdf', {}); await first; assertClean(f);
-  const retry = print(f.element); f.ipcRenderer.emit('print-to-pdf', {}); await retry; assertClean(f);
 });
 test('independent owning documents may print concurrently', async t => {
   const a = documentFixture({ acknowledge: false }), b = documentFixture({ acknowledge: false }); globals(t, a);
