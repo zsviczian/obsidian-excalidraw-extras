@@ -1,0 +1,33 @@
+name: Extras validation
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-and-artifact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.3'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:fast
+      - run: npm run test:source
+      - run: npm run build
+      - run: npm run build:api
+      - run: npm run test:package
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: extras-test-evidence
+          path: .test-work/reports
+          if-no-files-found: error

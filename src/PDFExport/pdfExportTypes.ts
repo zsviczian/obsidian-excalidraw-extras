@@ -76,6 +76,7 @@ export interface ElectronAPI {
   ipcRenderer: {
     send(channel: string, ...args: unknown[]): void;
     once(channel: string, func: (...args: unknown[]) => void): void;
+    removeListener(channel: string, func: (...args: unknown[]) => void): void;
   };
   remote: {
     dialog: {

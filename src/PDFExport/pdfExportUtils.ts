@@ -13,7 +13,11 @@ export function getPageSize(
     !pageSize ||
     typeof pageSize !== 'object' ||
     typeof pageSize.width !== 'number' ||
-    typeof pageSize.height !== 'number'
+    typeof pageSize.height !== 'number' ||
+    !Number.isFinite(pageSize.width) ||
+    !Number.isFinite(pageSize.height) ||
+    pageSize.width <= 0 ||
+    pageSize.height <= 0
   ) {
     throw new Error('Invalid page dimensions');
   }

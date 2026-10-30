@@ -1,22 +1,11 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { test } from 'node:test';
-import { runInNewContext } from 'node:vm';
-import ts from 'typescript';
-
-const source = readFileSync(
-  new URL('../../src/LatexTooltipPositioning.ts', import.meta.url),
-  'utf8',
-);
-const { outputText } = ts.transpileModule(source, {
-  compilerOptions: {
-    module: ts.ModuleKind.CommonJS,
-    target: ts.ScriptTarget.ES2022,
-  },
-});
-const exports = {};
-// Compile and execute only this checkout's trusted module, never vault content.
-runInNewContext(outputText, { exports, Node: { ELEMENT_NODE: 1 } });
+import { test, after } from 'node:test';
+import { sourceHarness } from './sourceHarness.mjs';
+const originalNode = globalThis.Node;
+globalThis.Node = { ELEMENT_NODE: 1 };
+const graph = sourceHarness();
+const exports = await graph.importModule('src/LatexTooltipPositioning.ts');
+after(() => { graph.close(); if (originalNode === undefined) delete globalThis.Node; else globalThis.Node = originalNode; });
 
 function documentFixture() {
   const observers = [];

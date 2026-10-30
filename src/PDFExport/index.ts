@@ -19,6 +19,25 @@ export async function exportToPDF(
   extraCss: string = '',
   pageRanges?: string | { from: number; to: number }[], // NEW
 ): Promise<void> {
+  const document = elementToPrint.ownerDocument;
+  const ownerWindow = document.defaultView;
+  const ipc = ownerWindow?.electron?.ipcRenderer;
+  if (!ownerWindow || !ipc) {
+    throw new Error('PDF export requires the desktop Electron host');
+  }
+  const options: PrintToPDFOptions = {
+    includeName: false,
+    pageSize: getPageSize(pageSize),
+    landscape: isLandscape,
+    margins,
+    scaleFactor: 100,
+    scale: 1,
+    open: shouldOpen,
+    filepath: pdfPath,
+    preferCSSPageSize: true,
+    ...(pageRanges ? { pageRanges } : {}),
+  };
+  const clonedContent = elementToPrint.cloneNode(true);
   // REVIEW NOTE: Dynamic print CSS is required for Electron print-to-PDF.
   // A constructed stylesheet is adopted temporarily by the document being printed
   // because export-specific values such as bgColor/extraCss cannot be expressed in the
@@ -32,97 +51,97 @@ export async function exportToPDF(
   // Related upstream discussions:
   // https://github.com/obsidianmd/stylelint-config/issues/6
   // https://github.com/obsidianmd/eslint-plugin/issues/197
-  const printStyleSheet = new CSSStyleSheet();
+  const printStyleSheet = new ownerWindow.CSSStyleSheet();
   printStyleSheet.replaceSync(`
-    @media print {
-      /* HIDE SCROLLBARS DURING PDF EXPORT */
-      ::-webkit-scrollbar {
-        display: none !important;
-        width: 0 !important;
-        height: 0 !important;
-      }
-      * {
-        scrollbar-width: none !important;
-      }
-
-      /* Ensure the print root expands to the widest page and is not constrained by app layout */
-      .print {
-        background-color: ${bgColor} !important;
-        display: block !important;
-        width: max-content !important;
-        max-width: none !important;
-        overflow: visible !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        position: static !important;
-        transform: none !important;
-        box-sizing: content-box !important;
-      }
-      .print > * {
-        width: max-content !important;
-        max-width: none !important;
-      }
-      .print-page {
-        display: block !important;
-        break-after: page !important;
-        page-break-after: always !important;
-        break-inside: avoid-page !important;
-        overflow: visible !important;
-        margin: 0 !important;
-        position: relative !important;
-      }
-      /* Keep spacer tiny; it still establishes the initial page box */
-      .print-page.dummy-first {
-        width: 1px !important;
-        height: 1px !important;
-      }
-      .print svg,
-      .print img,
-      .print canvas {
-        max-width: none !important;
-        max-height: none !important;
-      }
-      ${extraCss}
+  @media print {
+    /* HIDE SCROLLBARS DURING PDF EXPORT */
+    ::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
     }
-  `);
-  document.adoptedStyleSheets = [
-    ...document.adoptedStyleSheets,
-    printStyleSheet,
-  ];
+    * {
+      scrollbar-width: none !important;
+    }
 
-  const printDiv = document.body.createDiv('print');
-  setStyle(printDiv, {
-    top: '0',
-    left: '0',
-    display: 'flex',
-  });
-
-  //printDiv.appendChild(elementToPrint); // if I append directly, rounded images and clip paths get messed up
-  // see https://github.com/zsviczian/obsidian-excalidraw-plugin/issues/2544
-  printDiv.appendChild(elementToPrint.cloneNode(true));
-
-  const options: PrintToPDFOptions = {
-    includeName: false,
-    pageSize: getPageSize(pageSize),
-    landscape: isLandscape,
-    margins,
-    scaleFactor: 100,
-    scale: 1,
-    open: shouldOpen,
-    filepath: pdfPath,
-    preferCSSPageSize: true,
-    ...(pageRanges ? { pageRanges } : {}), // NEW
-  };
-
+    /* Ensure the print root expands to the widest page and is not constrained by app layout */
+    .print {
+      background-color: ${bgColor} !important;
+      display: block !important;
+      width: max-content !important;
+      max-width: none !important;
+      overflow: visible !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      position: static !important;
+      transform: none !important;
+      box-sizing: content-box !important;
+    }
+    .print > * {
+      width: max-content !important;
+      max-width: none !important;
+    }
+    .print-page {
+      display: block !important;
+      break-after: page !important;
+      page-break-after: always !important;
+      break-inside: avoid-page !important;
+      overflow: visible !important;
+      margin: 0 !important;
+      position: relative !important;
+    }
+    /* Keep spacer tiny; it still establishes the initial page box */
+    .print-page.dummy-first {
+      width: 1px !important;
+      height: 1px !important;
+    }
+    .print svg,
+    .print img,
+    .print canvas {
+      max-width: none !important;
+      max-height: none !important;
+    }
+    ${extraCss}
+  }
+`);
+  let printDiv: HTMLDivElement | undefined;
   try {
-    await new Promise<void>((resolve) => {
-      window.electron.ipcRenderer.once('print-to-pdf', () => resolve());
-      window.electron.ipcRenderer.send('print-to-pdf', options);
+    document.adoptedStyleSheets = [
+      ...document.adoptedStyleSheets,
+      printStyleSheet,
+    ];
+
+    printDiv = document.body.createDiv('print');
+    setStyle(printDiv, {
+      top: '0',
+      left: '0',
+      display: 'flex',
+    });
+
+    //printDiv.appendChild(elementToPrint); // if I append directly, rounded images and clip paths get messed up
+    // see https://github.com/zsviczian/obsidian-excalidraw-plugin/issues/2544
+    printDiv.appendChild(clonedContent);
+
+    await new Promise<void>((resolve, reject) => {
+      const cleanup = () => {
+        ipc.removeListener('print-to-pdf', onComplete);
+      };
+      const onComplete = () => {
+        cleanup();
+        resolve();
+      };
+      try {
+        ipc.once('print-to-pdf', onComplete);
+        ipc.send('print-to-pdf', options);
+      } catch (error) {
+        cleanup();
+        reject(error instanceof Error ? error : new Error(String(error)));
+      }
     });
   } finally {
-    printDiv.remove();
+    printDiv?.remove();
     document.adoptedStyleSheets = document.adoptedStyleSheets.filter(
       (styleSheet) => styleSheet !== printStyleSheet,
     );
