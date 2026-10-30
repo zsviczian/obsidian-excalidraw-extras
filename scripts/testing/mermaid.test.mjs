@@ -4,10 +4,10 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { getMermaidVersion, getModule } from '../../src/MermaidToExcalidraw/index.ts';
 
-test('advertises the exact converter version supplied by Extras', () => {
+test('preserves the unreleased service contract while supplying converter 3.1', () => {
   const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
   assert.equal(getMermaidVersion(), '3.0.0');
-  assert.equal(pkg.dependencies['@excalidraw/mermaid-to-excalidraw'], getMermaidVersion());
+  assert.equal(pkg.dependencies['@excalidraw/mermaid-to-excalidraw'], '3.1.0');
 });
 
 for (const [name, definition, labels] of [

@@ -53,8 +53,8 @@ try {
     const Extras = window.module.exports;
     window.__extras = new Extras(window.__extrasHost.app); await window.__extras.onload();
   });
-  const run = async (id, execute) => {
-    try { report.tests.push({ testId: 'extras-browser:' + id, featureIds: [], status: 'passed', evidence: await page.evaluate(execute) }); }
+  const run = async (id, execute, argument) => {
+    try { report.tests.push({ testId: 'extras-browser:' + id, featureIds: [], status: 'passed', evidence: await page.evaluate(execute, argument) }); }
     catch (error) { report.tests.push({ testId: 'extras-browser:' + id, featureIds: [], status: 'failed', reason: String(error.stack || error) }); throw error; }
   };
   await run('activation-and-real-mathjax', async () => {
@@ -100,6 +100,45 @@ try {
     let painted = 0; for (let i = 3; i < rgba.length; i += 4) if (rgba[i]) painted++;
     if (painted < 50) throw Error('Mermaid fallback does not decode into visible pixels');
     return { assertions: ['disabled Mermaid rejects', 'real flowchart retains editable text and arrow', 'image-only diagram decodes visible SVG pixels'], editableElements: editable.elements.length, files: Object.keys(image.files).length, painted };
+  });
+  // PR #478: each first-use Pele chunk must execute from the single installed
+  // bundle. The server serves no chunks, and remote requests fail the suite.
+  for (const fixture of JSON.parse(readFileSync(join(root, 'tests/mermaid-diagrams.json'), 'utf8'))) {
+    await run('mermaid-offline-' + fixture.id, async ({ definition, editable, labels }) => {
+      const converter = await window.__extras.api.mermaid.getModule();
+      const result = await converter.parseMermaidToExcalidraw(definition);
+      // Converter skeletons may omit dimensions (arrows derive them from points).
+      // Native integration separately checks the normalized scene dimensions.
+      if (!result.elements?.length || result.elements.some(e => ['x', 'y', 'width', 'height'].some(key => key in e && !Number.isFinite(e[key])))) throw Error('Missing or invalid skeleton geometry');
+      if (editable) {
+        if (result.elements.some(e => e.type === 'image')) throw Error('Editable diagram became an image');
+        const text = result.elements.map(e => e.text || e.label?.text || '').join('\n');
+        for (const label of labels) if (!text.includes(label)) throw Error('Lost label: ' + label);
+        return { assertions: ['offline first-use conversion', 'finite geometry', 'editable representation and labels'], elements: result.elements.length };
+      }
+      const image = result.elements.find(e => e.type === 'image'), file = result.files?.[image?.fileId];
+      if (!file?.dataURL?.startsWith('data:image/svg+xml')) throw Error('Image source missing');
+      const svg = new DOMParser().parseFromString(atob(file.dataURL.split(',')[1]), 'image/svg+xml');
+      if (svg.querySelector('parsererror')) throw Error('Invalid SVG');
+      for (const label of labels) if (!svg.documentElement.textContent.includes(label)) throw Error('Lost SVG label: ' + label);
+      const decoded = new Image(); decoded.src = file.dataURL; await decoded.decode();
+      const canvas = document.createElement('canvas'); canvas.width = decoded.naturalWidth; canvas.height = decoded.naturalHeight;
+      const context = canvas.getContext('2d'); context.drawImage(decoded, 0, 0);
+      const rgba = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      let painted = 0; for (let i = 3; i < rgba.length; i += 4) if (rgba[i]) painted++;
+      if (painted < 50) throw Error('Empty rendered image');
+      return { assertions: ['offline first-use conversion', 'finite geometry', 'SVG labels and decoded visible pixels'], painted, width: canvas.width, height: canvas.height };
+    }, fixture);
+  }
+  await run('mermaid-error-recovery', async () => {
+    const converter = await window.__extras.api.mermaid.getModule();
+    for (const [definition, options] of [['flowchart TD\n A[', {}], ['flowchart TD\n A --> B', { maxTextSize: 5 }]]) {
+      let rejected = false; try { await converter.parseMermaidToExcalidraw(definition, options); } catch { rejected = true; }
+      if (!rejected) throw Error('Invalid source/limit accepted');
+    }
+    const recovered = await converter.parseMermaidToExcalidraw('sequenceDiagram\n Alice->>Bob: Recovered');
+    if (!recovered.elements.length) throw Error('Converter failed to recover');
+    return { assertions: ['syntax and limits reject', 'a different diagram type recovers'] };
   });
   await run('desktop-capabilities-and-unload', async () => {
     const p = window.__extras;

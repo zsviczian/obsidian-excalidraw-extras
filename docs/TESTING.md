@@ -1,5 +1,23 @@
 # Extras testing
 
+## Fork PR #478: offline per-diagram loading
+
+Converter 3.1.0 is bundled with every Pele lazy diagram module into the single
+runtime file. The unreleased Mermaid service contract stays 3.0.0; it is not the
+converter's package version. No package/API release bump is included.
+`npm run test:browser` now checks twelve diagram kinds, editable labels, decoded
+SVG pixels, syntax/limit errors and recovery, with no runtime chunks served and
+all remote requests rejected. The sibling plugin's native gateway repeats the
+twelve-kind conversion offline with normalized geometry assertions. Full portable
+and native checks remain required; see the fork's PR #478 review for results.
+
+Final PR #478 portable verification passes 701 combined cases, including 29
+Extras source and 17 built-browser cases. A real-Extras main/popout diagnostic
+passes 43 assertions across 13 diagram kinds, editing/export/save-reopen and
+cleanup. The full native observer settling gate fails on both the candidate and
+a fresh pre-merge renderer; it remains a failure, with no production observer or
+diagnostic-policy change. See the fork's `dev-docs/Obsidian/pr-478-results.json`.
+
 ## Current acceptance checkpoint - 2026-10-30
 
 At Extras `1cdcb7c425a9b80afdc7b39c88861143b4b85e58`, fork

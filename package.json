@@ -32,7 +32,7 @@
   "keywords": [],
   "license": "0-BSD",
   "dependencies": {
-    "@excalidraw/mermaid-to-excalidraw": "3.0.0",
+    "@excalidraw/mermaid-to-excalidraw": "3.1.0",
     "mathjax-full": "^3.2.2",
     "nanoid": "^5.1.11"
   },

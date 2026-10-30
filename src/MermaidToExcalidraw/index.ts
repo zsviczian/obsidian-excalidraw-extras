@@ -1,3 +1,4 @@
+// Unreleased service contract shared with the plugin; independent of converter releases (#478).
 export const MERMAID_COMPONENT_VERSION = '3.0.0';
 
 export function getMermaidVersion(): string {
