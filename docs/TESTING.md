@@ -1,5 +1,35 @@
 # Extras testing
 
+## Current acceptance checkpoint - 2026-10-30
+
+At Extras `1cdcb7c425a9b80afdc7b39c88861143b4b85e58`, fork
+`053a3b9f9e77917c457fce8ca9453d38b92a303b` and plugin
+`fd32ac682e2aadc0f982fa23d36da482011117f9`, both complete native repeats pass
+**357/357 required cases**, including all 258 behavioral obligations and 40
+device/layout profiles. Artifact hashes match; cleanup, baseline restoration and
+both negative controls pass. Final portable validation passes 666 canonical
+cases, including **29 Extras source cases (2 new / 27 reused)** and **four reused
+built-browser cases**, plus API/package/build gates. Fast/source lanes overlap
+and are not added together.
+
+Each repeat performs one real plugin-to-Extras PDF export and verifies one
+288 x 216 pt page, expected text, 3330 red pixels and restored print resources.
+The final rendered page was visually inspected and its hash matches the earlier
+decoded output. Product waiting remains completion-driven: the 120000 ms timeout
+and per-document concurrency rejection stay removed, with no replacement lock,
+queue or cancellation. Deterministic delayed-completion coverage beyond two
+minutes and bounded tooling deadlines preserving unsettled native work remain.
+
+The native entry is `npm.cmd run test:native` from the plugin checkout, repeated
+with fixed revisions and fresh reports. It freshly builds/deploys/hash-verifies
+workspace artifacts and automatically configures/enables the services in
+`.test-work/vaults/excalidraw-auto-test/`. See the
+[complete sanitized evidence and commands](https://github.com/zsviczian/obsidian-excalidraw-plugin/blob/2026-10-28-automated-test-coverage/docs/testing-evidence/3022/README.md).
+No production, API, dependency or version change accompanies this completion.
+The historical sustained observer cause remains unproven; current strict gates
+pass, with no exception waiver. Physical devices, other native OSes, real OS
+drag/clipboard and isolated whole-app cold start remain separate evidence.
+
 The independent Node runner discovers every `scripts/testing/*.test.mjs` file and rejects zero discovery or duplicate IDs. Tests compile actual whole TypeScript modules through a test-only source graph. Structural Obsidian/IPC boundaries make service activation, settings UI callbacks, filesystem errors and PDF resource ownership deterministic; they do not establish rendered output. Pinned c8 remaps executed modules, lists unexecuted runtime modules and type-only exclusions, and enforces reviewed per-module thresholds in `tests/coverage-ratchets.json`. Fast and source reports describe overlapping tests and must not be added together as independent cases.
 
 The built-browser lane evaluates actual `dist/main.js` with a minimal Obsidian host adapter. It runs real MathJax and Mermaid offline, decodes their SVG into canvas pixels, checks editable flowchart structure, strict-error recovery, disabled services, missing Electron and old API references after unload. Browser error and external-request counts must be zero. Playwright is development-only and pinned; Chromium version and bundle hash are recorded in the report. These tests do not claim native Obsidian UI or genuine PDF printing.
@@ -16,6 +46,6 @@ The updated deterministic PDF regression advances its controlled clock beyond tw
 
 The plugin coordinator keeps bounded test deadlines. A failed tooling deadline cannot cancel Electron printing: unsettled work and its exact resources/controller must remain available for guarded recovery. The maintained tooling negative control verifies that distinction. Native verification runs one real plugin-gateway export and retains the PDF and rendered page beside its report. Current native completion/output evidence belongs to the expanded plugin run, not this historical checkpoint.
 
-These fixes have failed-before/passed-after evidence; no package version, runtime dependency or public API signature changes. Initial browser decode/export-shape assumptions, an unavailable offline npm cache and source-coverage reporting failures remain in ignored diagnostic logs rather than being represented as successful first attempts. Full cross-repository acceptance remains owned by the draft coordination PR.
+These fixes have failed-before/passed-after evidence; no package version, runtime dependency or public API signature changes. Initial browser decode/export-shape assumptions, an unavailable offline npm cache and source-coverage reporting failures remain in ignored diagnostic logs rather than being represented as successful first attempts. Full cross-repository acceptance is owned by the coordination PR; its current completed checkpoint is recorded above.
 
 When adding a service or changing a boundary, update source tests, the browser/native scenario as applicable, generated API consumer, coverage ratchets and plugin feature registry. Add success, rejection and cleanup oracles; exact source/bundle/fixture identities belong in run artifacts. Keep tests and instrumentation outside the shipped bundle.
