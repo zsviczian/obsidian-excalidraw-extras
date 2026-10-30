@@ -271,4 +271,12 @@ this.registerInterval(
 
 ## Automated validation
 
+### Required regression coverage and execution
+
+- Every behavior-changing feature, fix or refactor must add or extend executable tests for the service behavior and affected callers. For fixes, retain evidence that the regression fails before the change and passes afterward. Assert output, errors, resource lifetime and cleanup where applicable; registration or implementation-mirroring mocks alone are insufficient.
+- Run the affected focused tests during each implementation checkpoint. Before declaring a service code PR ready, run `npm run test:fast`, `npm run test:source`, `npm run build`, `npm run build:api`, `npm run test:package`, `npm run test:browser` and the required lint checks. Preserve public API compatibility, unknown settings and existing assertions; report unexpected behavior rather than silently weakening checks or changing goldens.
+- Activation/unload, owner-document/window behavior, actual Electron PDF printing and plugin-to-Extras integration also require affected native scenarios and the complete `npm run test:native` profile from the sibling plugin before readiness. Use its prepared repository-local vault and shared application-session lock. Complete coordinated portable/native acceptance before release, after relevant fork integration and when validating a new Obsidian release or alpha; retain the real host version as metadata and use explicit acceptance-plan repeat counts.
+- Source/browser/package CI runs on pull requests and pushes to `master`. Native tests are invoked locally or explicitly dispatched on the plugin's isolated runner; tests never run as part of ordinary shipped-plugin use. Record exact commands, revisions, artifact hashes, results and remaining environments.
+- Documentation-only or demonstrably mechanical changes need relevant documentation checks, not invented behavioral tests. Keep fixtures and test expectations current without treating inventory as behavioral evidence. Preserve failed evidence and unsettled native work on tooling deadlines.
+
 Read [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/TESTING.md](docs/TESTING.md). Run `npm run test:fast`, `npm run test:source`, production/API builds, `npm run test:package` and `npm run test:browser` for service changes. Whole-module coverage and renderer pixels are separate evidence. Native Electron PDF and plugin integration belong to the guarded plugin coordinator; never operate another vault or steal a debugger. No test scaffolding or generated artifacts may enter a release.
