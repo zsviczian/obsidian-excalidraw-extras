@@ -1,5 +1,21 @@
 import type { DataURL, FileId, MathJaxRenderOptions } from '../MathjaxToSVG';
 import { PageDimensions, PageSize } from '../PDFExport/pdfExportTypes';
+import type { MermaidConfig } from '@excalidraw/mermaid-to-excalidraw';
+
+/** Retain the existing caller curve default alongside converter 3.6 options. */
+export type ExtrasMermaidConfig = MermaidConfig & {
+  flowchart?: { curve?: 'linear' | 'basis' };
+};
+
+/** Extras keeps its legacy options while the pinned upstream converter evolves. */
+export type ExtrasMermaidModule = {
+  parseMermaidToExcalidraw(
+    definition: string,
+    config?: ExtrasMermaidConfig,
+  ): ReturnType<
+    typeof import('@excalidraw/mermaid-to-excalidraw').parseMermaidToExcalidraw
+  >;
+};
 
 export type ExtrasComponent = 'mathjax' | 'mermaid' | 'pdf' | 'filesystem';
 
@@ -31,7 +47,7 @@ export interface ExcalidrawExtrasAPI {
     clearMathJaxVariables(): void;
   };
   mermaid: {
-    getModule(): Promise<typeof import('@excalidraw/mermaid-to-excalidraw')>;
+    getModule(): Promise<ExtrasMermaidModule>;
   };
   pdf: {
     exportToPDF(

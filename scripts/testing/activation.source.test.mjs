@@ -17,7 +17,7 @@ async function setup(t, { persisted = {}, mathFailure = false } = {}) {
   const graph = sourceHarness({
     obsidian: { Plugin, App: class {}, Notice: class { constructor(message) { notices.push(message); } }, Platform: { isIosApp: false }, PluginSettingTab, Setting: class {} },
     './MathjaxToSVG': { getMathJaxVersion: () => '1.1.1', tex2dataURL: async () => { calls.push('mathjax'); return { dataURL: 'fixture' }; }, clearMathJaxVariables() { calls.push('clear-mathjax'); }, initializeMathJaxRenderer() { if (state.mathFailure) throw new InitializationError('failed'); }, MathJaxInitializationError: InitializationError },
-    './MermaidToExcalidraw': { getMermaidVersion: () => '3.0.0', getModule: async () => { calls.push('mermaid'); return { loaded: true }; } },
+    './MermaidToExcalidraw': { getMermaidVersion: () => '3.6.0', getModule: async () => { calls.push('mermaid'); return { loaded: true }; } },
     './PDFExport': { getPDFVersion: () => '1.0.0', initializePDFExport() {}, exportToPDF: async () => calls.push('pdf') },
     './FileSystem': { getFileSystemVersion: () => '1.0.0', readLocalFile: async () => { calls.push('filesystem'); return 'owned'; }, readLocalFileBinary: async () => new ArrayBuffer(2) },
     './LatexTooltipPositioning': { registerLatexTooltipPositioning() {} },

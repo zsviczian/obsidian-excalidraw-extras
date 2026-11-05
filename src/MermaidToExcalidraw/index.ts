@@ -1,14 +1,22 @@
-// Unreleased service contract shared with the plugin; independent of converter releases (#478).
-export const MERMAID_COMPONENT_VERSION = '3.0.0';
+// Shared with the plugin's exact requirement: converter 3.6 and legacy curve compatibility.
+export const MERMAID_COMPONENT_VERSION = '3.6.0';
 
 export function getMermaidVersion(): string {
   return MERMAID_COMPONENT_VERSION;
 }
 
 export async function getModule(): Promise<
-  typeof import('@excalidraw/mermaid-to-excalidraw')
+  import('../api/ExcalidrawExtrasAPI').ExtrasMermaidModule
 > {
-  // Returns the entire module dynamically so we don't have to map individual functions.
-  // This satisfies Excalidraw's runtime expectation seamlessly.
-  return await import('@excalidraw/mermaid-to-excalidraw');
+  const module = await import('@excalidraw/mermaid-to-excalidraw');
+  return {
+    ...module,
+    parseMermaidToExcalidraw: async (definition, config) => {
+      if (config?.flowchart?.curve !== undefined) {
+        const { parseWithLegacyCurve } = await import('./legacyCurve');
+        return parseWithLegacyCurve(definition, config);
+      }
+      return module.parseMermaidToExcalidraw(definition, config);
+    },
+  };
 }

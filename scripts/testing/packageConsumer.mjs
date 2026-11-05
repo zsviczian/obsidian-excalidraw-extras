@@ -16,12 +16,20 @@ assert.ok(pack.files.some(file=>file.path==='api/api/index.d.ts'));
 assert.ok(pack.files.some(file=>file.path==='api/MathjaxToSVG/index.d.ts'));
 assert.ok(!pack.files.some(file=>file.path.startsWith('scripts/')||file.path.startsWith('tests/')||file.path.startsWith('.test-work/')));
 writeFileSync(join(work,'package.json'),JSON.stringify({private:true,type:'module'}));
-command(['install','--prefer-offline','--ignore-scripts','--no-audit','--no-fund',join(work,pack.filename)],work);
+// A clean consumer must revalidate metadata rather than prefer an older cached
+// version list after a coordinated converter upgrade (plugin PR #3035).
+command(['install','--prefer-online','--ignore-scripts','--no-audit','--no-fund',join(work,pack.filename)],work);
 writeFileSync(join(work,'consumer.ts'),`import type {ExcalidrawExtrasAPI, MathJaxRenderOptions} from '@zsviczian/excalidraw-extras-api';
 declare const api: ExcalidrawExtrasAPI;
 const options: MathJaxRenderOptions={throwOnError:true};
 const tex = api.mathjax.tex2dataURL('x',1,null,options);
 const mermaid=api.mermaid.getModule();
+void mermaid.then(module => {
+  module.parseMermaidToExcalidraw('flowchart TD; A-->B', {flowchart:{curve:'basis'}});
+  module.parseMermaidToExcalidraw('flowchart TD; A-->B', {elbow:{flowchart:true}});
+  // @ts-expect-error unsupported curve must remain rejected
+  module.parseMermaidToExcalidraw('flowchart TD; A-->B', {flowchart:{curve:'unknown'}});
+});
 const fs:Promise<ArrayBuffer|null> = api.filesystem.readLocalFileBinary('owned',{});
 const pdf:Promise<void> = api.pdf.exportToPDF(document.body,'owned.pdf','#fff','A4',false,{top:0,left:0,right:0,bottom:0});
 // @ts-expect-error unknown component must remain a type error
