@@ -16,7 +16,9 @@ assert.ok(pack.files.some(file=>file.path==='api/api/index.d.ts'));
 assert.ok(pack.files.some(file=>file.path==='api/MathjaxToSVG/index.d.ts'));
 assert.ok(!pack.files.some(file=>file.path.startsWith('scripts/')||file.path.startsWith('tests/')||file.path.startsWith('.test-work/')));
 writeFileSync(join(work,'package.json'),JSON.stringify({private:true,type:'module'}));
-command(['install','--prefer-offline','--ignore-scripts','--no-audit','--no-fund',join(work,pack.filename)],work);
+// A clean consumer must revalidate metadata rather than prefer an older cached
+// version list after a coordinated converter upgrade (plugin PR #3035).
+command(['install','--prefer-online','--ignore-scripts','--no-audit','--no-fund',join(work,pack.filename)],work);
 writeFileSync(join(work,'consumer.ts'),`import type {ExcalidrawExtrasAPI, MathJaxRenderOptions} from '@zsviczian/excalidraw-extras-api';
 declare const api: ExcalidrawExtrasAPI;
 const options: MathJaxRenderOptions={throwOnError:true};
