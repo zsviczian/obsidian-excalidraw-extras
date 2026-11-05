@@ -1,5 +1,49 @@
 # Extras testing
 
+## Coordinated Mermaid 3.6 requirement — 2026-11-05
+
+Extras advertises Mermaid service **3.6.0**, and the paired Excalidraw plugin
+requires that exact value. This identifies the converter 3.6/Pele 1.13 build
+with preserved legacy linear/basis curves. Older 3.0/3.1 services and unmatched
+patch versions are rejected by the plugin before serving a converter. The
+Extras plugin remains at its already selected 0.2.0 release version; the API
+package version is separate. The main plugin's Excalidraw npm pin is unchanged
+until the maintainer's later component release.
+
+The version regression fails with the former 3.0 advertisement and passes with
+3.6. Producer source tests, real built-browser advertisement, consumer handshake
+tests and the native live-companion preflight cover this boundary. Run both
+repositories' complete portable/native profiles with matching source revisions
+before deployment; personal-vault deployment is separate from native testing.
+
+## Fork PR #482: converter 3.6
+
+Converter 3.6.0 / Pele 1.13.0 replace 3.1.0 / 1.8.0 in the actual offline
+bundle. The service contract remains 3.0.0 and release/API versions stay
+unchanged. Gantt, timeline and quadrant fixtures now require editable geometry
+and retained labels. Built-browser checks add elbow options, explicit false,
+front matter/directive curve precedence and original source-line errors.
+Converter 3.6 removed the existing `flowchart.curve` option. The compatibility
+adapter retains it through the same pinned Pele/converter stages, without
+rewriting source. A negative control proves unadapted 3.6 ignores basis;
+source and browser tests verify distinct legacy curves, definition precedence,
+limits and original error lines. Packed consumers check both legacy/new options.
+The first Gantt browser run failed on explicitly undefined optional skeleton
+dimensions; checks now validate provided values, with finite normalized geometry
+still mandatory in the native suite. The corrected 19-case browser pass is
+focused evidence; complete profiles remain required.
+Full cross-repository validation passes 876 portable and 387 Windows native
+cases, including 30 Extras source and 19 built-browser cases. An additional
+real-Extras main/popout probe passes 67 dialog assertions and 18 SVG paint/entry
+cases, with clean errors, cleanup and baseline restoration. The fork's
+`dev-docs/Obsidian/pr-482-results.json` preserves source/artifact identities,
+failed attempts and limits. The final SVG paint repair only reacquires the
+reopened target view; application and declaration artifacts match the complete
+native profile. Full/owned types, builds and packed consumers pass. Source
+lint is clean; repository lint retains its existing deprecated-config warning.
+No release, version bump or plugin dependency change. Physical mobile, other
+native OSes and isolated whole-app restart remain separate environments.
+
 ## Fork PR #478: offline per-diagram loading
 
 Converter 3.1.0 is bundled with every Pele lazy diagram module into the single

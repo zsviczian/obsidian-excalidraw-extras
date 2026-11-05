@@ -22,6 +22,12 @@ declare const api: ExcalidrawExtrasAPI;
 const options: MathJaxRenderOptions={throwOnError:true};
 const tex = api.mathjax.tex2dataURL('x',1,null,options);
 const mermaid=api.mermaid.getModule();
+void mermaid.then(module => {
+  module.parseMermaidToExcalidraw('flowchart TD; A-->B', {flowchart:{curve:'basis'}});
+  module.parseMermaidToExcalidraw('flowchart TD; A-->B', {elbow:{flowchart:true}});
+  // @ts-expect-error unsupported curve must remain rejected
+  module.parseMermaidToExcalidraw('flowchart TD; A-->B', {flowchart:{curve:'unknown'}});
+});
 const fs:Promise<ArrayBuffer|null> = api.filesystem.readLocalFileBinary('owned',{});
 const pdf:Promise<void> = api.pdf.exportToPDF(document.body,'owned.pdf','#fff','A4',false,{top:0,left:0,right:0,bottom:0});
 // @ts-expect-error unknown component must remain a type error

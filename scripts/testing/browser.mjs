@@ -84,6 +84,7 @@ try {
   });
   await run('real-mermaid-editable-and-image', async () => {
     const api = window.__extras.api;
+    if (api.versions.mermaid !== '3.6.0') throw Error('Built Extras advertises an incompatible Mermaid service');
     let disabled = false; try { await api.mermaid.getModule(); } catch { disabled = true; }
     if (!disabled) throw Error('Disabled Mermaid executed');
     await api.features.enable('mermaid', -1);
@@ -109,7 +110,7 @@ try {
       const result = await converter.parseMermaidToExcalidraw(definition);
       // Converter skeletons may omit dimensions (arrows derive them from points).
       // Native integration separately checks the normalized scene dimensions.
-      if (!result.elements?.length || result.elements.some(e => ['x', 'y', 'width', 'height'].some(key => key in e && !Number.isFinite(e[key])))) throw Error('Missing or invalid skeleton geometry');
+      if (!result.elements?.length || result.elements.some(e => ['x', 'y', 'width', 'height'].some(key => e[key] !== undefined && !Number.isFinite(e[key])))) throw Error('Missing or invalid skeleton geometry: ' + JSON.stringify(result.elements));
       if (editable) {
         if (result.elements.some(e => e.type === 'image')) throw Error('Editable diagram became an image');
         const text = result.elements.map(e => e.text || e.label?.text || '').join('\n');
@@ -130,6 +131,42 @@ try {
       return { assertions: ['offline first-use conversion', 'finite geometry', 'SVG labels and decoded visible pixels'], painted, width: canvas.width, height: canvas.height };
     }, fixture);
   }
+  await run('mermaid-36-elbows-and-source-lines', async () => {
+    const converter = await window.__extras.api.mermaid.getModule();
+    const source = 'flowchart TD\n A[Start] --> B[Finish]';
+    const options = { elbow: { flowchart: true } };
+    for (const [definition, config, elbowed] of [
+      [source, options, true],
+      [source, { elbow: { flowchart: false } }, false],
+      ['---\nconfig:\n  flowchart:\n    curve: basis\n---\n' + source, options, false],
+      ["%%{init: {'flowchart': {'curve': 'basis'}}}%%\n" + source, options, false],
+    ]) {
+      const result = await converter.parseMermaidToExcalidraw(definition, config);
+      const arrows = result.elements.filter(e => e.type === 'arrow');
+      if (!arrows.length || arrows.some(e => Boolean(e.elbowed) !== elbowed)) throw Error('Elbow or explicit curve configuration lost');
+    }
+    let message = '';
+    try { await converter.parseMermaidToExcalidraw('%% a\n%% b\nflowchart TD\n A --> B\n C --> D]'); } catch (error) { message = String(error.message); }
+    if (!/line 5\b/.test(message)) throw Error('Expected original source line 5: ' + message);
+    return { assertions: ['elbow options produce editable arrows', 'explicit false, front matter and directive curves win', 'parser errors count original source lines'] };
+  });
+  await run('mermaid-legacy-curve-compatibility', async () => {
+    const converter = await window.__extras.api.mermaid.getModule();
+    const source = 'flowchart TD\n A --> B\n A --> C\n B --> D\n C --> D';
+    const edges = async (definition, config) => {
+      const result = await converter.parseMermaidToExcalidraw(definition, config);
+      if (result.elements.some(e => e.type === 'image')) throw Error('Legacy curve lost editable output');
+      const arrows = result.elements.filter(e => e.type === 'arrow');
+      if (arrows.length !== 4) throw Error('Legacy conversion lost connectors');
+      return JSON.stringify(arrows.map(e => ({ points: e.points, roundness: e.roundness, elbowed: e.elbowed })));
+    };
+    const linear = { flowchart: { curve: 'linear' } }, basis = { flowchart: { curve: 'basis' } };
+    if (await edges(source, linear) === await edges(source, basis)) throw Error('Legacy basis curve was ignored');
+    for (const definition of ['---\nconfig:\n  flowchart:\n    curve: linear\n---\n' + source, "%%{init: {'flowchart': {'curve': 'linear'}}}%%\n" + source]) {
+      if (await edges(definition, linear) !== await edges(definition, basis)) throw Error('Source curve no longer overrides caller configuration');
+    }
+    return { assertions: ['legacy linear/basis options retain distinct editable connectors', 'front matter and directive precedence preserved without source rewriting'] };
+  });
   await run('mermaid-error-recovery', async () => {
     const converter = await window.__extras.api.mermaid.getModule();
     for (const [definition, options] of [['flowchart TD\n A[', {}], ['flowchart TD\n A --> B', { maxTextSize: 5 }]]) {
