@@ -1,6 +1,6 @@
 {
   "name": "@zsviczian/excalidraw-extras-api",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "API interfaces for Obsidian Excalidraw Extras",
   "main": "api/index.js",
   "types": "api/api/index.d.ts",
@@ -32,9 +32,7 @@
   "keywords": [],
   "license": "0-BSD",
   "dependencies": {
-    "@excalidraw/mermaid-to-excalidraw": "3.6.0",
-    "mathjax-full": "^3.2.2",
-    "nanoid": "^5.1.11"
+    "@excalidraw/mermaid-to-excalidraw": "3.6.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
@@ -49,6 +47,8 @@
     "eslint-plugin-obsidianmd": "^0.4.2",
     "globals": "^17.6.0",
     "jiti": "^2.6.1",
+    "mathjax-full": "^3.2.2",
+    "nanoid": "^5.1.11",
     "obsidian": "1.8.7",
     "playwright": "1.58.2",
     "prettier": "^3.8.3",
