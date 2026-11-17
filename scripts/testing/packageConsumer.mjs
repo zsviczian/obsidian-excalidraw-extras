@@ -1,7 +1,7 @@
 /** Verify packed generated declarations from a clean, independently resolved consumer. */
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {existsSync, mkdirSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomUUID} from 'node:crypto';
@@ -19,6 +19,15 @@ writeFileSync(join(work,'package.json'),JSON.stringify({private:true,type:'modul
 // A clean consumer must revalidate metadata rather than prefer an older cached
 // version list after a coordinated converter upgrade (plugin PR #3035).
 command(['install','--prefer-online','--ignore-scripts','--no-audit','--no-fund',join(work,pack.filename)],work);
+const consumerLock=JSON.parse(readFileSync(join(work,'package-lock.json'),'utf8'));
+const forbiddenPackages=['mathjax-full','speech-rule-engine','mermaid','dompurify'];
+for (const name of forbiddenPackages) {
+  assert.ok(!Object.keys(consumerLock.packages).some(path=>path===`node_modules/${name}`||path.endsWith(`/node_modules/${name}`)),
+    `Installing the API package must not install ${name}`);
+}
+const installedPackage=JSON.parse(readFileSync(join(work,'node_modules/@zsviczian/excalidraw-extras-api/package.json'),'utf8'));
+assert.deepEqual(installedPackage.dependencies,{'@excalidraw/mermaid-to-excalidraw':'3.6.0'},
+  'Only the converter required by the current public declarations remains a consumer dependency');
 writeFileSync(join(work,'consumer.ts'),`import type {ExcalidrawExtrasAPI, MathJaxRenderOptions} from '@zsviczian/excalidraw-extras-api';
 declare const api: ExcalidrawExtrasAPI;
 const options: MathJaxRenderOptions={throwOnError:true};
@@ -37,5 +46,5 @@ api.features.enable('unknown');
 void [tex,mermaid,fs,pdf];`);
 const checked=spawnSync(process.execPath,[join(root,'node_modules/typescript/bin/tsc'),'--noEmit','--strict','--skipLibCheck','--target','ES2022','--module','NodeNext','--moduleResolution','NodeNext','consumer.ts'],{cwd:work,encoding:'utf8',windowsHide:true,timeout:60000});
 assert.equal(checked.status,0,checked.stdout||checked.stderr);
-writeFileSync(join(work,'evidence.json'),JSON.stringify({package:pack.name,version:pack.version,sha512:pack.integrity,files:pack.files.length,status:'passed',consumer:'isolated install of packed package; generated API calls and invalid-input type rejection'},null,2));
+writeFileSync(join(work,'evidence.json'),JSON.stringify({package:pack.name,version:pack.version,sha512:pack.integrity,files:pack.files.length,status:'passed',consumer:'isolated install of packed package; generated API calls and invalid-input type rejection',dependencies:installedPackage.dependencies,excludedPackages:forbiddenPackages},null,2));
 console.log('Packed Extras API consumer passed: '+work);
